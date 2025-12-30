@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@source "../app/**/*.{js,ts,jsx,tsx}";
+@source "../components/**/*.{js,ts,jsx,tsx}";
+
+#nprogress .bar {
+  background: #3180f7 !important;
+  height: 3px !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px #469de5, 0 0 5px #46a5e5 !important;
+}
+
+body.no-scroll {
+  overflow: hidden;
+  overflow-x: hidden;
+  padding-right: var(--scrollbar-compensation, 0px);
+}
