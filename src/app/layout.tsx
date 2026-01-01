@@ -5,9 +5,9 @@ import { AuthProvider } from "@/context/AuthContext";
 import { PermissionProvider } from "@/context/PermissionContext";
 import ProgressProvider from "./ProgressProvider";
 import Providers from "./Providers";
-import PublicHeader from "@/components/header/PublicHeader";
 import PublicFooter from "@/components/footer/PublicFooter";
 import { getPublicSettings } from "@/modules/settings/public-api";
+import PublicHeaderShell from "@/components/header/PublicHeaderShell.server";
 
 export async function generateMetadata() {
   const s = await getPublicSettings();
@@ -41,7 +41,7 @@ export default async function RootLayout({
             <AuthProvider>
               <PermissionProvider>
                 <SidebarProvider>
-                  <PublicHeader storeName={s.storeName} logoUrl={s.logoUrl} />
+                  <PublicHeaderShell storeName={s.storeName} logoUrl={s.logoUrl} />
                   <ProgressProvider>{children}</ProgressProvider>
                   <PublicFooter settings={s} />
                 </SidebarProvider>

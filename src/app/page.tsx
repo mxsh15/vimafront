@@ -1,4 +1,4 @@
-import { listPublicProducts } from "@/modules/product/public-api.server";
+import { listPublicProductsCached } from "@/modules/product/public-api.server";
 import Link from "next/link";
 
 export const metadata = {
@@ -11,7 +11,7 @@ function toFaMoney(n?: number | null) {
 }
 
 export default async function Home() {
-  const res = await listPublicProducts({ page: 1, pageSize: 8 });
+  const res = await listPublicProductsCached({ page: 1, pageSize: 8 });
 
   const products = res?.items ?? [];
 

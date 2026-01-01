@@ -115,9 +115,9 @@ export type ProductUpsertInput = {
 
 export type PagedResult<T> = {
   items: T[];
+  totalCount: number;
   page: number;
   pageSize: number;
-  totalCount: number;
 };
 
 export type ProductDto = ProductListItemDto;
@@ -219,4 +219,41 @@ export type ProductDetailDto = {
   descriptionHtml?: string | null;
   mainImageUrl?: string | null;
   vendorOffers: VendorOfferPublicDto[];
+};
+
+export type PublicProductCardDto = {
+  id: string;
+  title: string;
+  primaryImageUrl?: string | null;
+  minPrice?: number | null;
+};
+
+export type PublicVendorOfferDto = {
+  id: string;
+  vendorId: string;
+  vendorName: string;
+  price: number;
+  discountPrice?: number | null;
+  manageStock: boolean;
+  stockQuantity: number;
+  status: number | string;
+  isDeleted: boolean;
+};
+
+export type PublicProductDto = {
+  id: string;
+  title: string;
+  descriptionHtml?: string | null;
+  primaryImageUrl?: string | null;
+  vendorOffers?: PublicVendorOfferDto[];
+};
+
+export type PublicProductCoreDto = Pick<
+  PublicProductDto,
+  "id" | "title" | "descriptionHtml" | "primaryImageUrl"
+>;
+
+export type PublicProductOffersDto = {
+  id: string;
+  vendorOffers: PublicVendorOfferDto[];
 };

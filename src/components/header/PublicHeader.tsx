@@ -3,40 +3,37 @@
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { usePermissions } from "@/context/PermissionContext";
-import { useRouter } from "next/navigation";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { resolveMediaUrl } from "@/modules/media/resolve-url";
 
 type Props = {
   storeName?: string;
   logoUrl?: string | null;
+  cartCount?: number;
 };
 
-export default function PublicHeader({ storeName, logoUrl }: Props) {
+export default function PublicHeader({ storeName, logoUrl, cartCount }: Props) {
   const { isAuthenticated, user, logout } = useAuth();
   const { hasPermission } = usePermissions();
   const router = useRouter();
   const pathname = usePathname();
 
+  const canAccessAdmin =
+    user?.role === "Admin" ||
+    (isAuthenticated &&
+      (hasPermission("users.view") ||
+        hasPermission("roles.view") ||
+        hasPermission("permissions.view") ||
+        hasPermission("vendors.view") ||
+        hasPermission("brands.view") ||
+        hasPermission("categories.view") ||
+        hasPermission("tags.view") ||
+        hasPermission("products.view") ||
+        hasPermission("media.view") ||
+        hasPermission("specAttributes.view") ||
+        hasPermission("specGroups.view")));
 
-  const canAccessAdmin = user?.role === "Admin" ||
-    (isAuthenticated && (
-      hasPermission("users.view") ||
-      hasPermission("roles.view") ||
-      hasPermission("permissions.view") ||
-      hasPermission("vendors.view") ||
-      hasPermission("brands.view") ||
-      hasPermission("categories.view") ||
-      hasPermission("tags.view") ||
-      hasPermission("products.view") ||
-      hasPermission("media.view") ||
-      hasPermission("specAttributes.view") ||
-      hasPermission("specGroups.view")
-    ));
-
-  const handleLogout = () => {
-    logout();
-  };
+  const handleLogout = () => logout();
 
   if (pathname?.startsWith("/admin") || pathname === "/login" || pathname === "/register") {
     return null;
@@ -69,11 +66,18 @@ export default function PublicHeader({ storeName, logoUrl }: Props) {
             >
               صفحه اصلی
             </Link>
+
+            {/* ✅ اینجا کنار لینک سبد خرید badge را می‌گذاریم */}
             <Link
               href="/cart"
-              className="text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+              className="relative text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
             >
               سبد خرید
+              {cartCount && cartCount > 0 ? (
+                <span className="absolute -top-2 -right-3 inline-flex min-w-5 h-5 items-center justify-center rounded-full bg-slate-900 text-white text-[11px] px-1">
+                  {cartCount.toLocaleString("fa-IR")}
+                </span>
+              ) : null}
             </Link>
           </nav>
 
@@ -81,7 +85,6 @@ export default function PublicHeader({ storeName, logoUrl }: Props) {
           <div className="flex items-center gap-4">
             {isAuthenticated ? (
               <>
-                {/* نمایش لینک پنل مدیریت فقط برای کاربران با دسترسی */}
                 {canAccessAdmin && (
                   <Link
                     href="/admin"
@@ -91,7 +94,6 @@ export default function PublicHeader({ storeName, logoUrl }: Props) {
                   </Link>
                 )}
 
-                {/* User Menu */}
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {user?.fullName || user?.firstName || "کاربر"}
@@ -126,4 +128,3 @@ export default function PublicHeader({ storeName, logoUrl }: Props) {
     </header>
   );
 }
-
