@@ -2,31 +2,36 @@ import { listReviews } from "@/modules/review/api";
 import { ReviewsPageClient } from "./ReviewsPageClient";
 
 export const metadata = {
-    title: "دیدگاه‌های محصولات | پنل مدیریت",
+  title: "دیدگاه‌های محصولات | پنل مدیریت",
 };
 
 export default async function Page({
-    searchParams,
+  searchParams,
 }: {
-    searchParams: { page?: string; q?: string; isApproved?: string; productId?: string };
+  searchParams: Promise<{
+    page?: string;
+    q?: string;
+    isApproved?: string;
+    productId?: string;
+  }>;
 }) {
-    const page = Number(searchParams?.page ?? 1);
-    const q = searchParams?.q ?? "";
-    const isApproved =
-        typeof searchParams?.isApproved === "string"
-            ? searchParams.isApproved === "true"
-            : undefined;
-    const productId = searchParams?.productId;
+  const params = await searchParams;
+  const page = Number(params.page ?? 1);
+  const q = params.q ?? "";
+  const isApproved =
+    typeof params?.isApproved === "string"
+      ? params.isApproved === "true"
+      : undefined;
+  const productId = params?.productId;
+  const pageSize = 20;
 
-    const pageSize = 20;
+  const data = await listReviews({
+    page,
+    pageSize,
+    q,
+    isApproved,
+    productId,
+  });
 
-    const data = await listReviews({
-        page,
-        pageSize,
-        q,
-        isApproved,
-        productId,
-    });
-
-    return <ReviewsPageClient data={data} q={q} />;
+  return <ReviewsPageClient data={data} q={q} />;
 }

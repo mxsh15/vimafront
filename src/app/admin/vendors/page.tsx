@@ -1,10 +1,7 @@
-import { AdminListPage } from "@/shared/components/AdminListPage";
-import { VendorCreateButton } from "@/modules/vendor/ui/VendorCreateButton";
 import { listVendors } from "@/modules/vendor/api";
-import { VendorRowActionsMenu } from "@/modules/vendor/ui/VendorRowActionsMenu";
-import { VendorRow } from "@/modules/vendor/types";
 import { listUserOptions } from "@/modules/user/api";
-import Link from "next/link";
+import { VendorsPageClient } from "./VendorsPageClient";
+import type { PagedResult, VendorRow, VendorListItemDto } from "@/modules/vendor/types";
 
 export const metadata = {
   title: "فروشندگان | پنل مدیریت",
@@ -26,90 +23,35 @@ export default async function Page({
     listUserOptions(),
   ]);
 
+  const normalized: PagedResult<VendorRow> = {
+    page: data.page ?? page,
+    pageSize: data.pageSize ?? pageSize,
+    totalCount: data.totalCount ?? 0,
+    items: (data.items ?? []).map((v: VendorListItemDto) => ({
+      id: v.id,
+      storeName: v.storeName,
+      legalName: v.legalName ?? null,
+      nationalId: v.nationalId ?? null,
+      phoneNumber: v.phoneNumber ?? null,
+      mobileNumber: v.mobileNumber ?? null,
+      defaultCommissionPercent: v.defaultCommissionPercent ?? null,
+      ownerUserId: v.ownerUserId ?? null,
+      ownerUserName: (v as any).ownerUserName ?? null,
+      productsCount: v.productsCount ?? 0,
+      ordersCount: v.ordersCount ?? 0,
+      status: v.status,
+      createdAtUtc: v.createdAtUtc,
+    })),
+  };
+
   return (
-    <AdminListPage<VendorRow>
-      title="فروشندگان"
-      subtitle="مدیریت و ویرایش فروشندگان ثبت شده در فروشگاه"
-      basePath="/admin/vendors"
-      data={data}
+    <VendorsPageClient
+      data={normalized}
       q={q}
-      createButton={
-        <VendorCreateButton userOptions={userOptions} />
-      }
-      searchPlaceholder="جستجوی فروشنده..."
-      enableStatusFilter={true}
-      statusOptions={[
-        { label: "همه", value: null },
-        { label: "فعال", value: "active" },
-        { label: "غیر فعال", value: "inactive" },
-      ]}
-      totalLabel={`${data.totalCount} فروشنده ثبت شده`}
-      emptyMessage="فروشنده‌ای ثبت نشده است."
-      rowMenuHeader="عملیات"
-      rowMenuCell={(row) => <VendorRowActionsMenu vendor={row} />}
-      showTrashButton={true}
-      columns={[
-        {
-          id: "storeName",
-          header: "نام فروشگاه",
-          cell: (r) => <span className="font-medium">{r.storeName}</span>,
-          cellClassName: "px-2",
-        },
-        {
-          id: "owner",
-          header: "مالک",
-          cell: (r) => (
-            <span className="text-sm text-slate-600">
-              {r.ownerUserName || "-"}
-            </span>
-          ),
-          cellClassName: "px-4",
-        },
-        {
-          id: "members",
-          header: "اعضا",
-          cell: (r) => (
-            <Link
-              href={`/admin/vendors/${r.id}/members`}
-              className="rounded-xl border border-slate-200 px-2 py-1 text-[11px] text-slate-700 hover:bg-slate-50"
-            >
-              مدیریت اعضا 
-            </Link>
-          ),
-          cellClassName: "px-2",
-        },
-        {
-          id: "productsCount",
-          header: "تعداد محصولات",
-          cell: (r) => (
-            <span className="text-sm text-slate-600">{r.productsCount}</span>
-          ),
-          cellClassName: "px-2",
-        },
-        {
-          id: "ordersCount",
-          header: "تعداد سفارشات",
-          cell: (r) => (
-            <span className="text-sm text-slate-600">{r.ordersCount}</span>
-          ),
-          cellClassName: "px-2",
-        },
-        {
-          id: "status",
-          header: "وضعیت",
-          cell: (r) => (
-            <span
-              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${r.status
-                ? "border-emerald-100 bg-emerald-50 text-emerald-500"
-                : "border-slate-200 bg-slate-50 text-slate-400"
-                }`}
-            >
-              {r.status ? "فعال" : "غیر فعال"}
-            </span>
-          ),
-          cellClassName: "px-2",
-        },
-      ]}
+      page={page}
+      pageSize={pageSize}
+      status={status}
+      userOptions={userOptions}
     />
   );
 }

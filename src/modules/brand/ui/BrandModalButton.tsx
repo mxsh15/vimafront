@@ -8,11 +8,13 @@ import {
   DialogPanel,
   DialogTitle,
 } from "@headlessui/react";
-import { upsertBrandFormAction } from "../actions";
 import MediaPickerDialog from "@/modules/media/ui/MediaPickerDialog";
 import { resolveMediaUrl } from "@/modules/media/resolve-url";
 import RichHtmlEditor from "@/components/admin/RichHtmlEditor";
 import { Brand } from "../types";
+import { useServerActionMutation } from "@/lib/react-query/use-server-action-mutation";
+import { qk } from "@/lib/react-query/keys";
+import { upsertBrandFormAction } from "../actions";
 
 function PlusIcon() {
   return (
@@ -47,6 +49,11 @@ export default function BrandModalButton({
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+
+  const upsert = useServerActionMutation<FormData, void>({
+    action: upsertBrandFormAction,
+    invalidate: [["brands"] as const],
+  });
 
   const [logoUrl, setLogoUrl] = useState<string>(brand?.logoUrl ?? "");
   const [mediaOpen, setMediaOpen] = useState(false);
@@ -131,11 +138,12 @@ export default function BrandModalButton({
 
               {/* Form */}
               <form
-                action={(formData) =>
+                onSubmit={(e) =>
                   startTransition(async () => {
-                    await upsertBrandFormAction(formData);
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    await upsert.mutateAsync(formData);
                     setOpen(false);
-                    router.refresh();
                   })
                 }
                 className="mt-6 space-y-5"

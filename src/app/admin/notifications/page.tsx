@@ -29,7 +29,7 @@ export default async function Page({
 
     const data = await listAdminNotifications({ page, pageSize: 20, q, type: type as any, isRead });
 
-    // برای Modal ارسال اعلان
+
     const userOptions = await listUserOptions();
     const roleOptions = await listRoleOptions();
     const vendorOptions = await listVendorOptions();

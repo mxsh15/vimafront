@@ -24,4 +24,15 @@ export type StoreSettingsDto = {
 
   timeZoneId: string;
   dateFormat: string;
+
+  multiVendorEnabled: boolean;
+  storeVendorId: string | null;
+};
+
+export type PublicSettings = {
+  storeName: string;
+  logoUrl?: string | null;
+  canonicalBaseUrl?: string | null;
+  defaultMetaTitle?: string | null;
+  defaultMetaDescription?: string | null;
 };

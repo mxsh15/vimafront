@@ -4,9 +4,6 @@ import { resolveMediaUrl } from "@/modules/media/resolve-url";
 import DeleteMediaButton from "@/modules/media/ui/DeleteMediaButton";
 import type { MediaAssetDto } from "@/modules/media/types";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
 export const metadata = {
   title: "کتابخانه چند رسانه‌ای | پنل مدیریت",
 };

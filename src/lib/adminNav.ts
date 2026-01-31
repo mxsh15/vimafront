@@ -21,6 +21,15 @@ import {
   BellAlertIcon,
 } from "@heroicons/react/24/outline";
 
+const MULTI_VENDOR_ONLY_PREFIXES = [
+  "/admin/vendor-finance",
+];
+
+const MULTI_VENDOR_ONLY_EXACT = new Set([
+  "/admin/vendors",
+  "/admin/vendor-offers",
+]);
+
 export type AdminNavItem = {
   name: string;
   href: string;
@@ -35,9 +44,11 @@ export type AdminNavGroup = {
 export const adminNavTop: AdminNavItem[] = [
   { name: "داشبورد", href: "/admin", icon: HomeIcon },
   { name: "کتابخانه چند رسانه ای", href: "/admin/media", icon: PhotoIcon },
+  { name: "بنر اسلایدر صفحه اصلی", href: "/admin/home-banners", icon: PhotoIcon },
+  { name: "سرویس‌های سریع صفحه اصلی", href: "/admin/quick-services", icon: PhotoIcon },
 ];
 
-export const adminNavGroups: AdminNavGroup[] = [
+const BASE_ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   {
     title: "کاربران و دسترسی",
     items: [
@@ -192,3 +203,19 @@ export const adminNavGroups: AdminNavGroup[] = [
     ],
   },
 ];
+
+
+export function getAdminNavGroups(multiVendorEnabled: boolean): AdminNavGroup[] {
+  if (multiVendorEnabled) return BASE_ADMIN_NAV_GROUPS;
+
+  const isMultiVendorOnly = (href: string) =>
+    MULTI_VENDOR_ONLY_EXACT.has(href) ||
+    MULTI_VENDOR_ONLY_PREFIXES.some((p) => href.startsWith(p));
+
+  return BASE_ADMIN_NAV_GROUPS
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((it) => !isMultiVendorOnly(it.href)),
+    }))
+    .filter((g) => g.items.length > 0);
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogBackdrop,
@@ -9,7 +9,9 @@ import {
 } from "@headlessui/react";
 import { XMarkIcon, Bars3Icon } from "@heroicons/react/24/outline";
 import NavItem from "./NavItem";
-import { adminNavTop, adminNavGroups } from "@/lib/adminNav";
+import { adminNavTop, getAdminNavGroups } from "@/lib/adminNav";
+import { apiFetch } from "@/lib/api";
+import type { StoreSettingsDto } from "@/modules/settings/types";
 import { usePermissions } from "@/context/PermissionContext";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -19,7 +21,7 @@ import {
 
 export default function Sidebar({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-
+  const [multiVendorEnabled, setMultiVendorEnabled] = useState<boolean>(true);
   const { hasPermission, loading: permissionsLoading } = usePermissions();
   const { user, loading: authLoading } = useAuth();
   const loading = permissionsLoading || authLoading;
@@ -42,15 +44,32 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
 
     const filteredTop = adminNavTop.filter((i) => canSee(i.href));
 
-    const filteredGroups = adminNavGroups
+    const baseGroups = getAdminNavGroups(multiVendorEnabled);
+
+    const filteredGroups = baseGroups
       .map((g) => ({
         ...g,
         items: g.items.filter((i) => canSee(i.href)),
       }))
-      .filter((g) => g.items.length > 0); // گروه خالی نمایش داده نشود
+      .filter((g) => g.items.length > 0);
 
     return { filteredTop, filteredGroups };
-  }, [hasPermission, loading, user]);
+  }, [hasPermission, loading, multiVendorEnabled]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    apiFetch<StoreSettingsDto>("settings")
+      .then((s) => {
+        if (mounted) setMultiVendorEnabled(s.multiVendorEnabled ?? true);
+      })
+      .catch(() => {
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const NavContent = (
     <nav className="flex-1">

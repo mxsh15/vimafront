@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { productUpsertSchema } from "./schemas";
 import {
   createProduct,
@@ -9,6 +9,12 @@ import {
   restoreProduct,
   hardDeleteProduct,
 } from "./api";
+
+const TAGS = {
+  list: "products",
+  trash: "products:trash",
+  detail: (id: string) => `product:${id}`,
+};
 
 export async function upsertProductFormAction(formData: FormData) {
   const categoryIdsRaw = formData.getAll("categoryIds") as string[];
@@ -37,9 +43,7 @@ export async function upsertProductFormAction(formData: FormData) {
   const seoMetaRobots = (formData.get("seoMetaRobots") as string) || null;
   const seoSchemaJson = (formData.get("seoSchemaJson") as string) || null;
 
-  // --- مدیریت موجودی ---
-  const manageStockRaw = formData.get("manageStock");
-  const manageStock = manageStockRaw === "on";
+  const manageStock = formData.get("manageStock") === "on";
 
   const stockStatusRaw = formData.get("stockStatus");
   const stockStatus =
@@ -47,11 +51,9 @@ export async function upsertProductFormAction(formData: FormData) {
       ? Number(stockStatusRaw)
       : undefined;
 
-  // محصول متغیر است یا نه؟
   const isVariantProduct =
     (isVariantProductRaw && isVariantProductRaw.toString() === "true") || false;
 
-  // مقدار فیلد موجودی انبار محصول ساده
   const stockQuantityRaw = formData.get("stockQuantity");
   const stock =
     !isVariantProduct && manageStock
@@ -59,6 +61,12 @@ export async function upsertProductFormAction(formData: FormData) {
         ? Number(stockQuantityRaw)
         : 0
       : 0;
+
+  const brandIdRaw = String(formData.get("brandId") ?? "").trim();
+  const brandId = brandIdRaw.length ? brandIdRaw : null;
+
+  const ownerVendorIdRaw = String(formData.get("ownerVendorId") ?? "").trim();
+  const ownerVendorId = ownerVendorIdRaw.length ? ownerVendorIdRaw : null;
 
   const data = {
     id: (formData.get("id") as string) || undefined,
@@ -71,8 +79,8 @@ export async function upsertProductFormAction(formData: FormData) {
     descriptionHtml: (formData.get("descriptionHtml") as string) || null,
     isFeatured: formData.get("isFeatured") === "on",
     status: Number(formData.get("status") ?? "1"),
-    brandId: (formData.get("brandId") as string)?.trim() || null,
-    ownerVendorId: formData.get("ownerVendorId") as string,
+    brandId,
+    ownerVendorId,
     seoTitle: (formData.get("seoTitle") as string) || null,
     seoMetaDescription: (formData.get("seoMetaDescription") as string) || null,
     seoKeywords: (formData.get("seoKeywords") as string) || null,
@@ -118,32 +126,37 @@ export async function upsertProductFormAction(formData: FormData) {
 
   const parsed = productUpsertSchema.safeParse(data);
   if (!parsed.success) {
-    console.error(parsed.error.issues);
     const firstIssue = parsed.error.issues[0];
     throw new Error(firstIssue?.message ?? "اطلاعات نامعتبر است");
   }
 
   if (parsed.data.id) {
     await updateProduct(parsed.data.id, parsed.data);
+    revalidateTag(TAGS.detail(parsed.data.id), "max");
   } else {
     await createProduct(parsed.data);
   }
 
-  revalidatePath("/admin/products");
+  revalidateTag(TAGS.list, "max");
+  revalidateTag(TAGS.trash, "max");
 }
 
 export async function deleteProductAction(id: string) {
   await deleteProduct(id);
-  revalidatePath("/admin/products");
+  revalidateTag(TAGS.list, "max");
+  revalidateTag(TAGS.trash, "max");
+  revalidateTag(TAGS.detail(id), "max");
 }
 
 export async function restoreProductAction(id: string) {
   await restoreProduct(id);
-  revalidatePath("/admin/products");
-  revalidatePath("/admin/products/trash");
+  revalidateTag(TAGS.list, "max");
+  revalidateTag(TAGS.trash, "max");
+  revalidateTag(TAGS.detail(id), "max");
 }
 
 export async function hardDeleteProductAction(id: string) {
   await hardDeleteProduct(id);
-  revalidatePath("/admin/products/trash");
+  revalidateTag(TAGS.trash, "max");
+  revalidateTag(TAGS.detail(id), "max");
 }

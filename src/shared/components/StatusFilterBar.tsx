@@ -8,15 +8,17 @@ type Option = {
 };
 
 type StatusFilterBarProps = {
-  paramKey?: string; 
+  paramKey?: string;
   options: Option[];
   totalLabel?: string;
+  label?: string; 
 };
 
 export function StatusFilterBar({
   paramKey = "status",
   options,
   totalLabel,
+  label, // ✅
 }: StatusFilterBarProps) {
   const router = useRouter();
   const params = useSearchParams();
@@ -26,12 +28,11 @@ export function StatusFilterBar({
 
   function handleClick(val: string | null) {
     const p = new URLSearchParams(params.toString());
-    if (val) {
-      p.set(paramKey, val);
-    } else {
-      p.delete(paramKey);
-    }
+    if (val) p.set(paramKey, val);
+    else p.delete(paramKey);
+
     p.set("page", "1");
+
     const qs = p.toString();
     const url = qs ? `${pathname}?${qs}` : pathname;
     router.push(url);
@@ -39,20 +40,23 @@ export function StatusFilterBar({
 
   return (
     <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-      <div className="flex items-center gap-2 text-[11px] text-slate-500">
-        <span>نمایش:</span>
+      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+        <span>{label ?? "نمایش:"}</span>
+
         {options.map((o) => {
           const isActive =
             (o.value === null && !current) || (o.value && o.value === current);
+
           const base =
             "rounded-full px-3 py-1 text-[11px] transition-colors border";
           const active =
             "bg-slate-900 text-white border-slate-900 hover:bg-slate-800";
           const inactive =
             "border-slate-200 hover:bg-slate-50 bg-transparent text-slate-600";
+
           return (
             <button
-              key={o.label}
+              key={`${paramKey}:${o.value ?? "all"}:${o.label}`}
               type="button"
               onClick={() => handleClick(o.value)}
               className={`${base} ${isActive ? active : inactive}`}
@@ -62,9 +66,8 @@ export function StatusFilterBar({
           );
         })}
       </div>
-      {totalLabel && (
-        <div className="text-[11px] text-slate-400">{totalLabel}</div>
-      )}
+
+      {totalLabel && <div className="text-[11px] text-slate-400">{totalLabel}</div>}
     </div>
   );
 }

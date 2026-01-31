@@ -4,17 +4,18 @@ import { PaymentsPageClient } from "./PaymentsPageClient";
 export const metadata = { title: "پرداخت‌ها | پنل مدیریت" };
 
 export default async function Page({
-    searchParams,
+  searchParams,
 }: {
-    searchParams: { page?: string; q?: string; status?: string };
+  searchParams: Promise<{ page?: string; q?: string; status?: string }>;
 }) {
-    const page = Number(searchParams?.page ?? 1);
-    const q = searchParams?.q ?? "";
-    const status =
-        typeof searchParams?.status === "string" && searchParams.status.length > 0
-            ? (searchParams.status as any)
-            : undefined;
+  const params = await searchParams;
+  const page = Number(params.page ?? 1);
+  const q = params.q ?? "";
+  const status =
+    typeof params?.status === "string" && params.status.length > 0
+      ? (params.status as any)
+      : undefined;
 
-    const data = await listPayments({ page, pageSize: 20, q, status });
-    return <PaymentsPageClient data={data} q={q} />;
+  const data = await listPayments({ page, pageSize: 20, q, status });
+  return <PaymentsPageClient data={data} q={q} />;
 }

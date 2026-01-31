@@ -1,8 +1,9 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
   experimental: {
-    ppr: "incremental",
+    cacheComponents: true
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

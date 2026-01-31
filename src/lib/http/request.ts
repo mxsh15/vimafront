@@ -75,6 +75,7 @@ export async function apiRequest<T>(url: string, init: RequestInit & { timeoutMs
         problem?.title ||
         rawBody?.slice(0, 500) ||
         `API ${res.status} ${res.statusText}`;
+      console.error("API ERROR", res.status, res.statusText, url, rawBody);
       throw new ApiError({
         message: msg,
         status: res.status,

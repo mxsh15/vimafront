@@ -4,24 +4,37 @@ import { AdminListPage } from "@/shared/components/AdminListPage";
 import BrandModalButton from "@/modules/brand/ui/BrandModalButton";
 import { BrandRowActionsMenu } from "@/modules/brand/ui/BrandRowActionsMenu";
 import { resolveMediaUrl } from "@/modules/media/resolve-url";
-import { BrandListItemDto } from "@/modules/brand/types";
+import type { BrandListItemDto, PagedResult } from "@/modules/brand/types";
 import { PermissionGuard } from "@/shared/components/PermissionGuard";
-import { PagedResult } from "@/modules/brand/types";
 import { usePermissions } from "@/context/PermissionContext";
+import { useBrands } from "@/modules/brand/hooks";
 
 type BrandsPageClientProps = {
   data: PagedResult<BrandListItemDto>;
   q: string;
+  page: number;
+  pageSize: number;
+  status?: string;
 };
 
-export function BrandsPageClient({ data, q }: BrandsPageClientProps) {
+export function BrandsPageClient({
+  data,
+  q,
+  page,
+  pageSize,
+  status,
+}: BrandsPageClientProps) {
   const { hasPermission } = usePermissions();
+
+  const brandsQ = useBrands({ page, pageSize, q, status }, data);
+  const list = brandsQ.data ?? data;
+
   return (
     <AdminListPage<BrandListItemDto>
       title="برند ها"
       subtitle="مدیریت و ویرایش برندهای ثبت شده در فروشگاه"
       basePath="/admin/brands"
-      data={data}
+      data={list}
       q={q}
       createButton={
         <PermissionGuard permission="brands.create">
@@ -39,7 +52,9 @@ export function BrandsPageClient({ data, q }: BrandsPageClientProps) {
         { label: "فعال", value: "active" },
         { label: "غیر فعال", value: "inactive" },
       ]}
-      totalLabel={`${data.totalCount} برند ثبت شده`}
+      totalLabel={`${
+        list.totalCount ?? list.total ?? list.items.length
+      } برند ثبت شده`}
       emptyMessage="برندی ثبت نشده است."
       rowMenuHeader="عملیات"
       rowMenuCell={(row) => (
@@ -97,4 +112,3 @@ export function BrandsPageClient({ data, q }: BrandsPageClientProps) {
     />
   );
 }
-

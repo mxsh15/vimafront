@@ -11,20 +11,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import {
-  LayoutGrid,
   GridIcon,
   PieChartIcon,
   ChevronDownIcon,
   Target,
 } from "lucide-react";
 import SidebarWidget from "./SidebarWidget";
-
-// 🔹 اضافه‌شده: پرمیشن‌ها
 import { usePermissions } from "@/context/PermissionContext";
 import {
   getRouteViewPermission,
   routeRequiresPermission,
 } from "@/lib/routePermissions";
+import { apiFetch } from "@/lib/api";
+import type { StoreSettingsDto } from "@/modules/settings/types";
 
 type NavItem = {
   name: string;
@@ -79,6 +78,35 @@ const AppSidebar: React.FC = () => {
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const isActive = useCallback((path: string) => path === pathname, [pathname]);
+
+  const [multiVendorEnabled, setMultiVendorEnabled] = useState<boolean>(true);
+  useEffect(() => {
+    let mounted = true;
+    apiFetch<StoreSettingsDto>("settings")
+      .then((s) => {
+        console.log("[Sidebar] /settings response:", s);
+        if (mounted) setMultiVendorEnabled(s.multiVendorEnabled ?? true);
+      })
+      .catch((err) => {
+        console.error("[Sidebar] /settings failed:", err);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+
+  const effectiveNavItems = useMemo(() => {
+    if (multiVendorEnabled) return navItems;
+
+    // وقتی تک‌فروشنده است، منوی فروشندگان حذف شود
+    return navItems.map((g) => ({
+      ...g,
+      subItems: g.subItems?.filter(
+        (x) => x.path !== "/admin/vendors"
+      ),
+    }));
+  }, [multiVendorEnabled]);
 
 
   useEffect(() => {
@@ -189,8 +217,8 @@ const AppSidebar: React.FC = () => {
   );
 
   const filteredMainNavItems = useMemo(
-    () => buildMenuWithPermissions(navItems),
-    [buildMenuWithPermissions]
+    () => buildMenuWithPermissions(effectiveNavItems),
+    [buildMenuWithPermissions, effectiveNavItems]
   );
 
   const renderMenuItems = (

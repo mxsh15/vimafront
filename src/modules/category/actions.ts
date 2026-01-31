@@ -1,7 +1,19 @@
 "use server";
 
-import { apiFetch } from "@/lib/api";
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
+import {
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  restoreCategory,
+  hardDeleteCategory,
+} from "./api";
+
+const TAGS = {
+  list: "categories",
+  trash: "categories:trash",
+  detail: (id: string) => `category:${id}`,
+};
 
 export async function upsertCategoryFormAction(formData: FormData) {
   const id = (formData.get("id") as string | null) || "";
@@ -9,7 +21,8 @@ export async function upsertCategoryFormAction(formData: FormData) {
   const slug = (formData.get("slug") as string | null) ?? "";
   const sortOrderStr = (formData.get("sortOrder") as string | null) ?? "0";
   const isActiveStr = (formData.get("isActive") as string | null) ?? "true";
-  const parentId = (formData.get("parentId") as string | null) || null;
+  const parentIdRaw = String(formData.get("parentId") ?? "").trim();
+  const parentId = parentIdRaw.length ? parentIdRaw : null;
 
   const payload = {
     title,
@@ -25,34 +38,32 @@ export async function upsertCategoryFormAction(formData: FormData) {
   };
 
   if (id) {
-    await serverFetch<void>(`productCategories/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    });
+    await updateCategory(id, payload);
+    revalidateTag(TAGS.detail(id), "max");
   } else {
-    await serverFetch<void>("productCategories", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    await createCategory(payload);
   }
 
-  revalidatePath("/admin/categories");
+  revalidateTag(TAGS.list, "max");
+  revalidateTag(TAGS.trash, "max");
 }
 
 export async function deleteCategoryAction(id: string) {
-  await serverFetch<void>(`productCategories/${id}`, { method: "DELETE" });
-  revalidatePath("/admin/categories");
+  await deleteCategory(id);
+  revalidateTag(TAGS.list, "max");
+  revalidateTag(TAGS.trash, "max");
+  revalidateTag(TAGS.detail(id), "max");
 }
 
-
-export async function restoreCategory(id: string) {
-  return serverFetch<void>(`productCategories/${id}/restore`, {
-    method: "POST",
-  });
+export async function restoreCategoryAction(id: string) {
+  await restoreCategory(id);
+  revalidateTag(TAGS.list, "max");
+  revalidateTag(TAGS.trash, "max");
+  revalidateTag(TAGS.detail(id), "max");
 }
 
-export async function hardDeleteCategory(id: string) {
-  return serverFetch<void>(`productCategories/${id}/hard`, {
-    method: "DELETE",
-  });
+export async function hardDeleteCategoryAction(id: string) {
+  await hardDeleteCategory(id);
+  revalidateTag(TAGS.trash, "max");
+  revalidateTag(TAGS.detail(id), "max");
 }

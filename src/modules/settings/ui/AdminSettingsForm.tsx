@@ -15,6 +15,9 @@ export default function AdminSettingsForm({ settings }: Props) {
     const [logoMediaOpen, setLogoMediaOpen] = useState(false);
     const [logoUrl, setLogoUrl] = useState<string>(settings.logoUrl ?? "");
     const [timeZoneId, setTimeZoneId] = useState<string>(settings.timeZoneId ?? "Asia/Tehran");
+    const [multiVendorEnabled, setMultiVendorEnabled] = useState<boolean>(
+        settings.multiVendorEnabled ?? true
+    );
 
     const initialG = parseGregorianISO(settings.dateFormat) ?? (() => {
         const d = new Date();
@@ -36,6 +39,7 @@ export default function AdminSettingsForm({ settings }: Props) {
             action={(fd) => {
                 // sync state -> formData
                 fd.set("logoUrl", logoUrl || "");
+                fd.set("multiVendorEnabled", multiVendorEnabled ? "true" : "false");
                 startTransition(async () => {
                     await updateSettingsAction(fd);
                 });
@@ -236,6 +240,26 @@ export default function AdminSettingsForm({ settings }: Props) {
                         </select>
                     </label>
 
+                </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="mb-3 text-sm font-semibold text-slate-700">چندفروشندگی</div>
+
+                <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm text-slate-600">
+                        اگر خاموش شود، سیستم به حالت تک‌فروشنده می‌رود و پیشنهادهای غیرپیش‌فرض حذف نرم می‌شوند.
+                    </div>
+
+                    <select
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                        value={multiVendorEnabled ? "true" : "false"}
+                        onChange={(e) => setMultiVendorEnabled(e.target.value === "true")}
+                        disabled={pending}
+                    >
+                        <option value="true">فعال</option>
+                        <option value="false">غیرفعال</option>
+                    </select>
                 </div>
             </div>
 

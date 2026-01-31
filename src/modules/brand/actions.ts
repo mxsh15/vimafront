@@ -1,58 +1,64 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { createBrand, updateBrand, deleteBrand } from "@/modules/brand/api";
-import type { BrandUpsertInput } from "@/modules/brand/schemas";
-import { apiFetch } from "@/lib/api";
+import { revalidateTag } from "next/cache";
+import type { BrandUpsertInput } from "./schemas";
+import {
+  createBrand,
+  updateBrand,
+  deleteBrand,
+  restoreBrand,
+  hardDeleteBrand,
+} from "./api";
+import { pick } from "./utils";
 
-export async function upsertBrandFormAction(formData: FormData) {
-  const id = (formData.get("id") as string) || undefined;
+const TAGS = {
+  list: "brands",
+  trash: "brands:trash",
+  detail: (id: string) => `brand:${id}`,
+};
 
-  const payload: BrandUpsertInput = {
-    title: String(formData.get("title") || "").trim(),
-    englishTitle: (formData.get("englishTitle") as string) || null,
-    slug: String(formData.get("slug") || "").trim(),
-    websiteUrl: (formData.get("websiteUrl") as string) || null,
-    contentHtml: (formData.get("contentHtml") as string) || null,
-    logoUrl: (formData.get("logoUrl") as string) || null,
-    seo: null,
-    rowVersion: (formData.get("rowVersion") as string) || null,
-  };
+// برای صفحه /admin/brands/[id]
+export async function upsertBrandAction(id: string, payload: BrandUpsertInput) {
+  await updateBrand(id, payload);
 
-  if (!payload.title || !payload.slug) {
-    throw new Error("عنوان و نامک (slug) الزامی هستند.");
-  }
-
-  if (id) {
-    await updateBrand(id, payload);
-  } else {
-    await createBrand(payload);
-  }
-
-  revalidatePath("/shop/brands");
+  revalidateTag(TAGS.list, "max");
+  revalidateTag(TAGS.detail(id), "max");
 }
 
-export async function upsertBrandAction(
-  id: string | undefined,
-  payload: BrandUpsertInput
-) {
-  if (id) await updateBrand(id, payload);
-  else await createBrand(payload);
-  revalidatePath("/shop/brands");
+// برای مودال create/edit که FormData می‌دهد
+export async function upsertBrandFormAction(formData: FormData): Promise<void> {
+  const payload = pick(formData);
+  if (payload.id) {
+    await updateBrand(payload.id, payload as any);
+
+    revalidateTag(TAGS.list, "max");
+    revalidateTag(TAGS.detail(payload.id), "max");
+  } else {
+    await createBrand(payload as any);
+
+    revalidateTag(TAGS.list, "max");
+  }
 }
 
 export async function deleteBrandAction(id: string) {
   await deleteBrand(id);
-  revalidatePath("/shop/brands");
+
+  revalidateTag(TAGS.list, "max");
+  revalidateTag(TAGS.detail(id), "max");
+  revalidateTag(TAGS.trash, "max");
 }
 
 export async function restoreBrandAction(id: string) {
-  await serverFetch<void>(`brands/${id}/restore`, { method: "POST" });
-  revalidatePath("/admin/brands");
-  revalidatePath("/admin/brands/trash");
+  await restoreBrand(id);
+
+  revalidateTag(TAGS.list, "max");
+  revalidateTag(TAGS.trash, "max");
+  revalidateTag(TAGS.detail(id), "max");
 }
 
 export async function hardDeleteBrandAction(id: string) {
-  await serverFetch<void>(`brands/${id}/hard`, { method: "DELETE" });
-  revalidatePath("/admin/brands/trash");
+  await hardDeleteBrand(id);
+
+  revalidateTag(TAGS.trash, "max");
+  revalidateTag(TAGS.detail(id), "max");
 }

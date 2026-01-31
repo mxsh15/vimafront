@@ -1,11 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 
 type AdminPaginationBarProps = {
   basePath: string;
   page: number;
   pageSize: number;
   totalCount: number;
-  q?: string;
 };
 
 export function AdminPaginationBar({
@@ -13,8 +15,10 @@ export function AdminPaginationBar({
   page,
   pageSize,
   totalCount,
-  q,
 }: AdminPaginationBarProps) {
+  const params = useSearchParams();
+  const pathname = usePathname();
+
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const current = Math.min(Math.max(1, page), totalPages);
 
@@ -22,11 +26,12 @@ export function AdminPaginationBar({
   const to = Math.min(current * pageSize, totalCount);
 
   function buildHref(targetPage: number) {
-    const params = new URLSearchParams();
-    params.set("page", String(targetPage));
-    if (q && q.trim()) params.set("q", q.trim());
-    const qs = params.toString();
-    return qs ? `${basePath}?${qs}` : basePath;
+    // همه پارامترها حفظ می‌شوند (role/status/q/...)
+    const p = new URLSearchParams(params.toString());
+    p.set("page", String(targetPage));
+    const qs = p.toString();
+    const base = pathname || basePath;
+    return qs ? `${base}?${qs}` : base;
   }
 
   const prevHref = buildHref(Math.max(1, current - 1));
@@ -44,9 +49,11 @@ export function AdminPaginationBar({
         >
           « قبلی
         </Link>
+
         <button className="h-7 min-w-7 rounded-lg bg-blue-600 px-2 text-center text-[11px] font-semibold text-white">
           {current}
         </button>
+
         <Link
           aria-disabled={current === totalPages}
           href={current === totalPages ? "#" : nextHref}
@@ -57,6 +64,7 @@ export function AdminPaginationBar({
           بعدی »
         </Link>
       </div>
+
       <div>
         {totalCount === 0
           ? "هیچ موردی ثبت نشده است"

@@ -46,4 +46,11 @@ export type AdminListPageProps<T> = {
   showTrashButton?: boolean;
   trashHref?: string;
   trashLabel?: string;
+
+  filterBars?: {
+    paramKey: string;
+    label?: string;
+    options: { label: string; value: string | null }[];
+    totalLabel?: string;
+  }[];
 };

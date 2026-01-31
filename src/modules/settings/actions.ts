@@ -28,6 +28,8 @@ export async function updateSettingsAction(formData: FormData) {
 
     timeZoneId: String(formData.get("timeZoneId") || "Asia/Tehran").trim(),
     dateFormat: String(formData.get("dateFormat") || "yyyy/MM/dd").trim(),
+
+    multiVendorEnabled: String(formData.get("multiVendorEnabled") || "true") === "true",
   };
 
   await updateSettings(payload);

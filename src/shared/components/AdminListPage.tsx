@@ -24,6 +24,7 @@ export function AdminListPage<T>({
   showTrashButton = false,
   trashHref,
   trashLabel = "سطل زباله",
+  filterBars,
 }: AdminListPageProps<T>) {
   return (
     <main className="flex-1 px-6 pb-6 pt-4">
@@ -61,6 +62,16 @@ export function AdminListPage<T>({
             </div>
           </div>
         </div>
+
+        {filterBars?.map((fb) => (
+          <StatusFilterBar
+            key={fb.paramKey}
+            paramKey={fb.paramKey}
+            options={fb.options}
+            totalLabel={fb.totalLabel}
+             label={fb.label}
+          />
+        ))}
 
         {enableStatusFilter && statusOptions && (
           <StatusFilterBar options={statusOptions} totalLabel={totalLabel} />

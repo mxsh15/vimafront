@@ -23,6 +23,8 @@ export type VendorListItemDto = {
   ownerUserId?: string | null;
   status: boolean;
   createdAtUtc: string;
+  productsCount?: number;
+  ordersCount?: number;
 };
 
 export type PagedResult<T> = {
@@ -62,4 +64,3 @@ export type VendorMemberDto = {
   role: string;
   isActive: boolean;
 };
-

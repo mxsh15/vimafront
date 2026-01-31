@@ -1,6 +1,13 @@
 import { publicFetch } from "../../lib/public-http";
 import { cacheLife, cacheTag } from "next/cache";
-import { PagedResult, PublicProductCardDto, PublicProductCoreDto, PublicProductDto, PublicProductOffersDto } from "./types";
+import {
+  PagedResult,
+  PublicProductCardDto,
+  PublicProductCoreDto,
+  PublicProductDto,
+  PublicProductOffersDto,
+} from "./types";
+import { cacheProfiles } from "@/lib/cache/profiles";
 
 export async function listPublicProducts({
   page = 1,
@@ -34,7 +41,7 @@ export async function listPublicProductsCached({
 } = {}): Promise<PagedResult<PublicProductCardDto>> {
   "use cache";
   cacheTag("catalog:shop");
-  cacheLife("minutes");
+  cacheProfiles.catalogHours();
 
   const params = new URLSearchParams({
     page: String(page),
@@ -62,7 +69,7 @@ export async function getPublicProductCore(
 ): Promise<PublicProductCoreDto> {
   "use cache";
   cacheTag(`product-core:${id}`);
-  cacheLife("days");
+  cacheProfiles.storeStaticDays();
 
   const p = await publicFetch<PublicProductDto>(`store/${id}`, {
     method: "GET",

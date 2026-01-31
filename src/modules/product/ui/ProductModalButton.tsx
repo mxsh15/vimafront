@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useTransition, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogBackdrop,
@@ -29,9 +28,17 @@ import { ProductSpecsEditor } from "@/modules/specs/ui/ProductSpecsEditor";
 import { getProductSpecsClient } from "@/modules/specs/client-api";
 import { CategoryOptionDto } from "@/modules/category/types";
 import { bffFetch } from "@/lib/fetch-bff";
-import { SchemaPresetId, buildSchemaTemplate, schemaPresets } from "@/modules/seo/schema-presets";
+import {
+  SchemaPresetId,
+  buildSchemaTemplate,
+  schemaPresets,
+} from "@/modules/seo/schema-presets";
 import { TagListItemDto } from "@/modules/tag/types";
 import { createTagClient } from "@/modules/tag/client-api";
+import { useServerActionMutation } from "@/lib/react-query/use-server-action-mutation";
+import SearchableSelect from "@/shared/components/SearchableSelect";
+import { apiFetch } from "@/lib/api";
+import { StoreSettingsDto } from "@/modules/settings/types";
 
 const SEO_TITLE_LIMIT = 60;
 const SEO_DESC_LIMIT = 160;
@@ -128,8 +135,7 @@ function validateVariantRow(v: VariantRow) {
 
   // 2) minVariablePrice نباید از maxVariablePrice بیشتر باشد
   if (minVar != null && maxVar != null && minVar > maxVar) {
-    const msg =
-      "حداقل قیمت متغیر نمی‌تواند از حداکثر قیمت متغیر بیشتر باشد.";
+    const msg = "حداقل قیمت متغیر نمی‌تواند از حداکثر قیمت متغیر بیشتر باشد.";
     errors.push(msg);
     fieldErrors.minVariablePrice = msg;
     fieldErrors.maxVariablePrice = msg;
@@ -171,11 +177,10 @@ export default function ProductModalButton({
   triggerVariant = product ? "link" : "primary",
   label,
   className,
-  tagOptions
+  tagOptions,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const router = useRouter();
 
   // Image field
   const [primaryImageUrl, setPrimaryImageUrl] = useState<string>(
@@ -208,9 +213,11 @@ export default function ProductModalButton({
   const [status, setStatus] = useState<number>(product?.status ?? 1);
   const [saleModel, setSaleModel] = useState<number>(product?.saleModel ?? 0);
 
-  // تنظیمات موجودی و فروش در سطح پیشنهاد فروشنده 
+  // تنظیمات موجودی و فروش در سطح پیشنهاد فروشنده
   const [manageStock, setManageStock] = useState(
-    product?.isVariantProduct ? false : product?.defaultOfferManageStock ?? false
+    product?.isVariantProduct
+      ? false
+      : product?.defaultOfferManageStock ?? false
   );
 
   const [stockStatus, setStockStatus] = useState<number>(
@@ -238,7 +245,7 @@ export default function ProductModalButton({
   );
 
   // Meta Robots UI
-  const [robotsIndex, setRobotsIndex] = useState(false);   // index
+  const [robotsIndex, setRobotsIndex] = useState(false); // index
   const [robotsNoIndex, setRobotsNoIndex] = useState(false); // noindex
   const [robotsNoFollow, setRobotsNoFollow] = useState(false);
   const [robotsNoArchive, setRobotsNoArchive] = useState(false);
@@ -271,11 +278,14 @@ export default function ProductModalButton({
     product?.isVariantProduct ?? false
   );
   const [variants, setVariants] = useState<VariantRow[]>([]);
-  const [variantSourceValues, setVariantSourceValues] = useState<VariantAttributeValueDto[]>([]);
+  const [variantSourceValues, setVariantSourceValues] = useState<
+    VariantAttributeValueDto[]
+  >([]);
   const [variantsLoaded, setVariantsLoaded] = useState(false);
 
   // برای فرم افزودن ویراینت جدید"
-  const [newVariantAttributeId, setNewVariantAttributeId] = useState<string>("");
+  const [newVariantAttributeId, setNewVariantAttributeId] =
+    useState<string>("");
   const [newVariantOptionId, setNewVariantOptionId] = useState<string>("");
 
   const isEdit = !!product;
@@ -330,6 +340,7 @@ export default function ProductModalButton({
   const [tagCreating, setTagCreating] = useState(false);
   const [tagError, setTagError] = useState<string | null>(null);
 
+
   useEffect(() => {
     setAllTags(tagOptions ?? []);
   }, [tagOptions]);
@@ -359,7 +370,6 @@ export default function ProductModalButton({
     }
   };
 
-
   useEffect(() => {
     if (!open) return;
     if (!product) return;
@@ -379,47 +389,40 @@ export default function ProductModalButton({
     })();
   }, [open, product, isVariantProduct, variantsLoaded]);
 
+  const variantAttributeOptions = useMemo(() => {
+    const map = new Map<string, { id: string; title: string }>();
 
-  const variantAttributeOptions = useMemo(
-    () => {
-      const map = new Map<string, { id: string; title: string }>();
+    variantSourceValues.forEach((v) => {
+      if (!map.has(v.attributeId)) {
+        map.set(v.attributeId, {
+          id: v.attributeId,
+          title: v.attributeTitle,
+        });
+      }
+    });
 
-      variantSourceValues.forEach((v) => {
-        if (!map.has(v.attributeId)) {
-          map.set(v.attributeId, {
-            id: v.attributeId,
-            title: v.attributeTitle,
-          });
-        }
-      });
-
-      return Array.from(map.values());
-    },
-    [variantSourceValues]
-  );
+    return Array.from(map.values());
+  }, [variantSourceValues]);
 
   // برای هر ویژگی، لیست مقدارهای مجاز آن
-  const variantOptionsByAttribute = useMemo(
-    () => {
-      const map: Record<string, { id: string; label: string }[]> = {};
+  const variantOptionsByAttribute = useMemo(() => {
+    const map: Record<string, { id: string; label: string }[]> = {};
 
-      variantSourceValues.forEach((v) => {
-        if (!map[v.attributeId]) {
-          map[v.attributeId] = [];
-        }
+    variantSourceValues.forEach((v) => {
+      if (!map[v.attributeId]) {
+        map[v.attributeId] = [];
+      }
 
-        if (!map[v.attributeId].some((o) => o.id === v.optionId)) {
-          map[v.attributeId].push({
-            id: v.optionId,
-            label: v.optionTitle,
-          });
-        }
-      });
+      if (!map[v.attributeId].some((o) => o.id === v.optionId)) {
+        map[v.attributeId].push({
+          id: v.optionId,
+          label: v.optionTitle,
+        });
+      }
+    });
 
-      return map;
-    },
-    [variantSourceValues]
-  );
+    return map;
+  }, [variantSourceValues]);
 
   //هلسپر برای گرفتن عنوان ویژگی/مقدار
   const getVariantAttributeTitle = (attributeId?: string) =>
@@ -441,7 +444,8 @@ export default function ProductModalButton({
     variantCode: dto.variantCode ?? undefined,
     sku: dto.sku ?? "",
     price: dto.price != null ? dto.price.toString() : "",
-    discountPrice: dto.discountPrice != null ? dto.discountPrice.toString() : "",
+    discountPrice:
+      dto.discountPrice != null ? dto.discountPrice.toString() : "",
     minVariablePrice:
       dto.minVariablePrice != null ? dto.minVariablePrice.toString() : "",
     maxVariablePrice:
@@ -455,12 +459,8 @@ export default function ProductModalButton({
       dto.minOrderQuantity != null ? dto.minOrderQuantity.toString() : "",
     maxOrderQuantity:
       dto.maxOrderQuantity != null ? dto.maxOrderQuantity.toString() : "",
-    quantityStep:
-      dto.quantityStep != null ? dto.quantityStep.toString() : "1",
-    stock:
-      dto.stockQuantity != null
-        ? dto.stockQuantity.toString()
-        : "",
+    quantityStep: dto.quantityStep != null ? dto.quantityStep.toString() : "1",
+    stock: dto.stockQuantity != null ? dto.stockQuantity.toString() : "",
     manageStock: dto.manageStock ?? false,
     stockStatus: dto.stockStatus ?? 1,
     backorderPolicy: dto.backorderPolicy ?? 0,
@@ -495,7 +495,6 @@ export default function ProductModalButton({
     })();
   }, [open, product, isVariantProduct]);
 
-
   useEffect(() => {
     if (!open) return;
     if (!product) return;
@@ -518,7 +517,6 @@ export default function ProductModalButton({
     })();
   }, [open, product, specsLoaded, specsLoading]);
 
-
   useEffect(() => {
     const robots = (product?.seoMetaRobots ?? "").toLowerCase();
     const hasNoIndex = robots.includes("noindex");
@@ -530,7 +528,6 @@ export default function ProductModalButton({
     setRobotsNoSnippet(robots.includes("nosnippet"));
     setRobotsNoImageIndex(robots.includes("noimageindex"));
   }, [product]);
-
 
   const computedSeoMetaRobots = useMemo(() => {
     const tokens: string[] = [];
@@ -555,6 +552,56 @@ export default function ProductModalButton({
     robotsNoSnippet,
     robotsNoImageIndex,
   ]);
+
+  const upsert = useServerActionMutation<FormData, void>({
+    action: upsertProductFormAction,
+    invalidate: [["products"] as const, ["products", "trash"] as const],
+  });
+
+  const [ownerVendorId, setOwnerVendorId] = useState<string>(
+    product?.ownerVendorId ?? ""
+  );
+  const [multiVendorEnabled, setMultiVendorEnabled] = useState<boolean>(true);
+  const [brandId, setBrandId] = useState<string>(product?.brandId ?? "");
+
+  useEffect(() => {
+    setOwnerVendorId(product?.ownerVendorId ?? "");
+    setBrandId(product?.brandId ?? "");
+  }, [product?.id, product?.ownerVendorId, product?.brandId]);
+
+  const vendorSelectOptions = vendorOptions.map((v) => ({
+    value: v.id,
+    label: v.storeName,
+  }));
+
+  const brandSelectOptions = brandOptions.map((b) => ({
+    value: b.id,
+    label: b.title,
+  }));
+
+
+  useEffect(() => {
+    let mounted = true;
+
+    apiFetch<StoreSettingsDto>("settings")
+      .then((s) => {
+        if (!mounted) return;
+        setMultiVendorEnabled(s.multiVendorEnabled ?? true);
+      })
+      .catch(() => {
+        if (mounted) setMultiVendorEnabled(true);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!multiVendorEnabled) {
+      setOwnerVendorId("");
+    }
+  }, [multiVendorEnabled]);
 
   return (
     <>
@@ -632,21 +679,30 @@ export default function ProductModalButton({
                 action={(formData) =>
                   startTransition(async () => {
                     if (isVariantProduct) {
-                      const hasAnyError = variants.some((v) => validateVariantRow(v).hasError);
+                      const hasAnyError = variants.some(
+                        (v) => validateVariantRow(v).hasError
+                      );
                       if (hasAnyError) {
-                        alert("برخی از متغیرها خطای قیمتی دارند. لطفاً آن‌ها را برطرف کنید.");
+                        alert(
+                          "برخی از متغیرها خطای قیمتی دارند. لطفاً آن‌ها را برطرف کنید."
+                        );
                         return;
                       }
                     }
 
-                    formData.set("isVariantProduct", isVariantProduct ? "true" : "false");
+                    formData.set(
+                      "isVariantProduct",
+                      isVariantProduct ? "true" : "false"
+                    );
 
                     const variantsPayload =
                       isVariantProduct && variants.length > 0
                         ? variants.map((v) => {
                           const manageStock = v.manageStock === true;
                           const stockStatus = !manageStock
-                            ? (v.stockStatus ? Number(v.stockStatus) : 1)
+                            ? v.stockStatus
+                              ? Number(v.stockStatus)
+                              : 1
                             : null;
 
                           return {
@@ -657,27 +713,43 @@ export default function ProductModalButton({
                             sku: v.sku || null,
                             price: v.price !== "" ? Number(v.price) : null,
                             discountPrice:
-                              v.discountPrice !== "" ? Number(v.discountPrice) : null,
+                              v.discountPrice !== ""
+                                ? Number(v.discountPrice)
+                                : null,
                             stock: v.stock !== "" ? Number(v.stock) : 0,
 
                             minVariablePrice:
-                              v.minVariablePrice !== "" ? Number(v.minVariablePrice) : null,
+                              v.minVariablePrice !== ""
+                                ? Number(v.minVariablePrice)
+                                : null,
                             maxVariablePrice:
-                              v.maxVariablePrice !== "" ? Number(v.maxVariablePrice) : null,
+                              v.maxVariablePrice !== ""
+                                ? Number(v.maxVariablePrice)
+                                : null,
 
-                            weightKg: v.weightKg !== "" ? Number(v.weightKg) : null,
-                            lengthCm: v.lengthCm !== "" ? Number(v.lengthCm) : null,
-                            widthCm: v.widthCm !== "" ? Number(v.widthCm) : null,
-                            heightCm: v.heightCm !== "" ? Number(v.heightCm) : null,
+                            weightKg:
+                              v.weightKg !== "" ? Number(v.weightKg) : null,
+                            lengthCm:
+                              v.lengthCm !== "" ? Number(v.lengthCm) : null,
+                            widthCm:
+                              v.widthCm !== "" ? Number(v.widthCm) : null,
+                            heightCm:
+                              v.heightCm !== "" ? Number(v.heightCm) : null,
 
                             description: v.description || null,
 
                             minOrderQuantity:
-                              v.minOrderQuantity !== "" ? Number(v.minOrderQuantity) : 0,
+                              v.minOrderQuantity !== ""
+                                ? Number(v.minOrderQuantity)
+                                : 0,
                             maxOrderQuantity:
-                              v.maxOrderQuantity !== "" ? Number(v.maxOrderQuantity) : 0,
+                              v.maxOrderQuantity !== ""
+                                ? Number(v.maxOrderQuantity)
+                                : 0,
                             quantityStep:
-                              v.quantityStep !== "" ? Number(v.quantityStep) : 1,
+                              v.quantityStep !== ""
+                                ? Number(v.quantityStep)
+                                : 1,
                             manageStock,
                             stockStatus,
                             backorderPolicy: v.backorderPolicy ?? 0,
@@ -688,7 +760,7 @@ export default function ProductModalButton({
                           };
                         })
                         : [];
-                        
+
                     formData.set(
                       "variantsJson",
                       isVariantProduct && variantsPayload.length > 0
@@ -697,14 +769,17 @@ export default function ProductModalButton({
                     );
 
                     formData.set("primaryImageUrl", primaryImageUrl ?? "");
-                    await upsertProductFormAction(formData);
+                    await upsert.mutateAsync(formData);
                     setOpen(false);
-                    router.refresh();
                   })
                 }
                 className="space-y-4"
               >
-                <input type="hidden" name="id" defaultValue={product?.id ?? ""} />
+                <input
+                  type="hidden"
+                  name="id"
+                  defaultValue={product?.id ?? ""}
+                />
                 <input
                   type="hidden"
                   name="rowVersion"
@@ -776,7 +851,9 @@ export default function ProductModalButton({
                         <input
                           name="shortTitle"
                           required
-                          defaultValue={product?.shortTitle ?? product?.title ?? ""} // 👈 fallback به title
+                          defaultValue={
+                            product?.shortTitle ?? product?.title ?? ""
+                          } // 👈 fallback به title
                           className="w-full rounded border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-900 focus:border-[#2271b1] focus:ring-1 focus:ring-[#2271b1]"
                           placeholder="مثال: آیفون ۱۶ پرو مکس"
                         />
@@ -845,16 +922,13 @@ export default function ProductModalButton({
                                   checked={isVariantProduct}
                                   onChange={() => setIsVariantProduct(true)}
                                 />
-                                <span className="text-right">
-                                  محصول متغیر
-                                </span>
+                                <span className="text-right">محصول متغیر</span>
                               </label>
 
                               {isVariantProduct && (
                                 <p className="mt-2 text-[11px] text-gray-500">
-                                  در حالت محصول متغیر، قیمت و موجودی اصلی
-                                  الزامی نیست و برای هر ویراینت جداگانه تعریف
-                                  می‌شود.
+                                  در حالت محصول متغیر، قیمت و موجودی اصلی الزامی
+                                  نیست و برای هر ویراینت جداگانه تعریف می‌شود.
                                 </p>
                               )}
                             </div>
@@ -897,13 +971,21 @@ export default function ProductModalButton({
                                   <select
                                     className="w-full rounded border border-gray-300 px-2 py-1 text-xs text-gray-900 bg-white"
                                     value={newVariantOptionId}
-                                    onChange={(e) => setNewVariantOptionId(e.target.value)}
+                                    onChange={(e) =>
+                                      setNewVariantOptionId(e.target.value)
+                                    }
                                     disabled={!newVariantAttributeId}
                                   >
                                     <option value="">
-                                      {newVariantAttributeId ? "انتخاب مقدار..." : "ابتدا ویژگی را انتخاب کنید"}
+                                      {newVariantAttributeId
+                                        ? "انتخاب مقدار..."
+                                        : "ابتدا ویژگی را انتخاب کنید"}
                                     </option>
-                                    {(variantOptionsByAttribute[newVariantAttributeId] ?? []).map((opt) => (
+                                    {(
+                                      variantOptionsByAttribute[
+                                      newVariantAttributeId
+                                      ] ?? []
+                                    ).map((opt) => (
                                       <option key={opt.id} value={opt.id}>
                                         {opt.label}
                                       </option>
@@ -916,12 +998,17 @@ export default function ProductModalButton({
                                     type="button"
                                     className="w-full rounded bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-800 border border-gray-300 hover:bg-gray-200 disabled:opacity-50"
                                     onClick={() => {
-                                      if (!newVariantAttributeId || !newVariantOptionId) return;
+                                      if (
+                                        !newVariantAttributeId ||
+                                        !newVariantOptionId
+                                      )
+                                        return;
 
                                       // جلوگیری از تکرار همان ویژگی/مقدار
                                       const exists = variants.some(
                                         (v) =>
-                                          v.attributeId === newVariantAttributeId &&
+                                          v.attributeId ===
+                                          newVariantAttributeId &&
                                           v.optionId === newVariantOptionId
                                       );
                                       if (exists) return;
@@ -956,12 +1043,18 @@ export default function ProductModalButton({
                                         },
                                       ]);
 
-                                      setExpandedVariantIds((prev) => [...prev, tempId]);
+                                      setExpandedVariantIds((prev) => [
+                                        ...prev,
+                                        tempId,
+                                      ]);
 
                                       // ریست فرم افزودن
                                       setNewVariantOptionId("");
                                     }}
-                                    disabled={!newVariantAttributeId || !newVariantOptionId}
+                                    disabled={
+                                      !newVariantAttributeId ||
+                                      !newVariantOptionId
+                                    }
                                   >
                                     افزودن ویراینت
                                   </button>
@@ -971,16 +1064,23 @@ export default function ProductModalButton({
                               {/* کارت‌های ویراینت — شبیه تصویر ووکامرس */}
                               {variants.length === 0 && (
                                 <p className="text-[11px] text-gray-400 text-right">
-                                  هنوز هیچ ویراینتی ثبت نشده است. ابتدا ویژگی و مقدار را انتخاب کرده و روی
-                                  «افزودن ویراینت» کلیک کنید.
+                                  هنوز هیچ ویراینتی ثبت نشده است. ابتدا ویژگی و
+                                  مقدار را انتخاب کرده و روی «افزودن ویراینت»
+                                  کلیک کنید.
                                 </p>
                               )}
 
                               <div className="space-y-4">
                                 {variants.map((v) => {
-                                  const attrTitle = getVariantAttributeTitle(v.attributeId);
-                                  const optionLabel = getVariantOptionLabel(v.attributeId, v.optionId);
-                                  const isExpanded = expandedVariantIds.includes(v.tempId);
+                                  const attrTitle = getVariantAttributeTitle(
+                                    v.attributeId
+                                  );
+                                  const optionLabel = getVariantOptionLabel(
+                                    v.attributeId,
+                                    v.optionId
+                                  );
+                                  const isExpanded =
+                                    expandedVariantIds.includes(v.tempId);
 
                                   const validation = validateVariantRow(v);
                                   const fe = validation.fieldErrors;
@@ -993,7 +1093,9 @@ export default function ProductModalButton({
                                       {/* هدر کارت – کلیک‌خور برای باز/بسته کردن */}
                                       <button
                                         type="button"
-                                        onClick={() => toggleVariantExpanded(v.tempId)}
+                                        onClick={() =>
+                                          toggleVariantExpanded(v.tempId)
+                                        }
                                         className="w-full flex items-center justify-between px-3 py-2 text-right"
                                       >
                                         <div className="text-sm font-semibold text-gray-800">
@@ -1023,10 +1125,14 @@ export default function ProductModalButton({
                                           className="text-xs text-red-600 hover:text-red-800"
                                           onClick={() => {
                                             setVariants((prev) =>
-                                              prev.filter((row) => row.tempId !== v.tempId)
+                                              prev.filter(
+                                                (row) => row.tempId !== v.tempId
+                                              )
                                             );
                                             setExpandedVariantIds((prev) =>
-                                              prev.filter((id) => id !== v.tempId)
+                                              prev.filter(
+                                                (id) => id !== v.tempId
+                                              )
                                             );
                                           }}
                                         >
@@ -1040,7 +1146,10 @@ export default function ProductModalButton({
                                           {/* شناسه محصول SKU */}
                                           <div>
                                             <label className="mb-1 block text-xs text-gray-700 text-right">
-                                              شناسه محصول (SKU) <span className="text-red-500">*</span>
+                                              شناسه محصول (SKU){" "}
+                                              <span className="text-red-500">
+                                                *
+                                              </span>
                                             </label>
                                             <input
                                               type="text"
@@ -1050,7 +1159,9 @@ export default function ProductModalButton({
                                                 const val = e.target.value;
                                                 setVariants((prev) =>
                                                   prev.map((row) =>
-                                                    row.tempId === v.tempId ? { ...row, sku: val } : row
+                                                    row.tempId === v.tempId
+                                                      ? { ...row, sku: val }
+                                                      : row
                                                   )
                                                 );
                                               }}
@@ -1068,7 +1179,9 @@ export default function ProductModalButton({
                                               type="number"
                                               className={
                                                 "w-full rounded border px-2 py-1.5 text-xs text-gray-900 bg-white " +
-                                                (fe.price ? "border-red-500" : "border-gray-300")
+                                                (fe.price
+                                                  ? "border-red-500"
+                                                  : "border-gray-300")
                                               }
                                               min={0}
                                               value={v.price}
@@ -1076,7 +1189,9 @@ export default function ProductModalButton({
                                                 const val = e.target.value;
                                                 setVariants((prev) =>
                                                   prev.map((row) =>
-                                                    row.tempId === v.tempId ? { ...row, price: val } : row
+                                                    row.tempId === v.tempId
+                                                      ? { ...row, price: val }
+                                                      : row
                                                   )
                                                 );
                                               }}
@@ -1096,7 +1211,9 @@ export default function ProductModalButton({
                                               type="number"
                                               className={
                                                 "w-full rounded border px-2 py-1.5 text-xs text-gray-900 bg-white " +
-                                                (fe.discountPrice ? "border-red-500" : "border-gray-300")
+                                                (fe.discountPrice
+                                                  ? "border-red-500"
+                                                  : "border-gray-300")
                                               }
                                               min={0}
                                               value={v.discountPrice}
@@ -1104,7 +1221,12 @@ export default function ProductModalButton({
                                                 const val = e.target.value;
                                                 setVariants((prev) =>
                                                   prev.map((row) =>
-                                                    row.tempId === v.tempId ? { ...row, discountPrice: val } : row
+                                                    row.tempId === v.tempId
+                                                      ? {
+                                                        ...row,
+                                                        discountPrice: val,
+                                                      }
+                                                      : row
                                                   )
                                                 );
                                               }}
@@ -1125,7 +1247,9 @@ export default function ProductModalButton({
                                               type="number"
                                               className={
                                                 "w-full rounded border px-2 py-1.5 text-xs text-gray-900 bg-white " +
-                                                (fe.minVariablePrice ? "border-red-500" : "border-gray-300")
+                                                (fe.minVariablePrice
+                                                  ? "border-red-500"
+                                                  : "border-gray-300")
                                               }
                                               min={0}
                                               value={v.minVariablePrice}
@@ -1134,7 +1258,10 @@ export default function ProductModalButton({
                                                 setVariants((prev) =>
                                                   prev.map((row) =>
                                                     row.tempId === v.tempId
-                                                      ? { ...row, minVariablePrice: val }
+                                                      ? {
+                                                        ...row,
+                                                        minVariablePrice: val,
+                                                      }
                                                       : row
                                                   )
                                                 );
@@ -1155,7 +1282,9 @@ export default function ProductModalButton({
                                               type="number"
                                               className={
                                                 "w-full rounded border px-2 py-1.5 text-xs text-gray-900 bg-white " +
-                                                (fe.maxVariablePrice ? "border-red-500" : "border-gray-300")
+                                                (fe.maxVariablePrice
+                                                  ? "border-red-500"
+                                                  : "border-gray-300")
                                               }
                                               min={0}
                                               value={v.maxVariablePrice}
@@ -1164,7 +1293,10 @@ export default function ProductModalButton({
                                                 setVariants((prev) =>
                                                   prev.map((row) =>
                                                     row.tempId === v.tempId
-                                                      ? { ...row, maxVariablePrice: val }
+                                                      ? {
+                                                        ...row,
+                                                        maxVariablePrice: val,
+                                                      }
                                                       : row
                                                   )
                                                 );
@@ -1177,33 +1309,43 @@ export default function ProductModalButton({
                                             )}
                                           </div>
 
-
                                           {/* بلاک مدیریت موجودی برای این ویراینت */}
                                           <div className="md:col-span-2">
                                             <div className="mt-2 rounded border border-gray-200 bg-white p-3 space-y-3">
                                               <label className="flex items-center gap-2 text-xs text-gray-800">
                                                 <input
                                                   type="checkbox"
-                                                  checked={v.manageStock ?? false}
+                                                  checked={
+                                                    v.manageStock ?? false
+                                                  }
                                                   onChange={(e) => {
-                                                    const checked = e.target.checked;
+                                                    const checked =
+                                                      e.target.checked;
                                                     setVariants((prev) =>
                                                       prev.map((row) =>
                                                         row.tempId === v.tempId
-                                                          ? { ...row, manageStock: checked }
+                                                          ? {
+                                                            ...row,
+                                                            manageStock:
+                                                              checked,
+                                                          }
                                                           : row
                                                       )
                                                     );
                                                   }}
                                                 />
-                                                <span>مدیریت موجودی انبار این ویراینت؟</span>
+                                                <span>
+                                                  مدیریت موجودی انبار این
+                                                  ویراینت؟
+                                                </span>
                                               </label>
 
                                               {v.manageStock ? (
                                                 <div className="grid gap-3 md:grid-cols-3">
                                                   <div>
                                                     <label className="mb-1 block text-xs text-gray-700 text-right">
-                                                      موجودی انبار (Stock Quantity)
+                                                      موجودی انبار (Stock
+                                                      Quantity)
                                                     </label>
                                                     <input
                                                       type="number"
@@ -1211,10 +1353,17 @@ export default function ProductModalButton({
                                                       min={0}
                                                       value={v.stock}
                                                       onChange={(e) => {
-                                                        const val = e.target.value;
+                                                        const val =
+                                                          e.target.value;
                                                         setVariants((prev) =>
                                                           prev.map((row) =>
-                                                            row.tempId === v.tempId ? { ...row, stock: val } : row
+                                                            row.tempId ===
+                                                              v.tempId
+                                                              ? {
+                                                                ...row,
+                                                                stock: val,
+                                                              }
+                                                              : row
                                                           )
                                                         );
                                                       }}
@@ -1229,13 +1378,22 @@ export default function ProductModalButton({
                                                       type="number"
                                                       className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs text-gray-900"
                                                       min={0}
-                                                      value={v.lowStockThreshold ?? ""}
+                                                      value={
+                                                        v.lowStockThreshold ??
+                                                        ""
+                                                      }
                                                       onChange={(e) => {
-                                                        const val = e.target.value;
+                                                        const val =
+                                                          e.target.value;
                                                         setVariants((prev) =>
                                                           prev.map((row) =>
-                                                            row.tempId === v.tempId
-                                                              ? { ...row, lowStockThreshold: val }
+                                                            row.tempId ===
+                                                              v.tempId
+                                                              ? {
+                                                                ...row,
+                                                                lowStockThreshold:
+                                                                  val,
+                                                              }
                                                               : row
                                                           )
                                                         );
@@ -1249,21 +1407,37 @@ export default function ProductModalButton({
                                                     </label>
                                                     <select
                                                       className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs text-gray-900"
-                                                      value={v.backorderPolicy ?? 0}
+                                                      value={
+                                                        v.backorderPolicy ?? 0
+                                                      }
                                                       onChange={(e) => {
-                                                        const val = Number(e.target.value);
+                                                        const val = Number(
+                                                          e.target.value
+                                                        );
                                                         setVariants((prev) =>
                                                           prev.map((row) =>
-                                                            row.tempId === v.tempId
-                                                              ? { ...row, backorderPolicy: val }
+                                                            row.tempId ===
+                                                              v.tempId
+                                                              ? {
+                                                                ...row,
+                                                                backorderPolicy:
+                                                                  val,
+                                                              }
                                                               : row
                                                           )
                                                         );
                                                       }}
                                                     >
-                                                      <option value={0}>عدم اجازه سفارش در صورت اتمام</option>
-                                                      <option value={1}>اجازه سفارش با اطلاع</option>
-                                                      <option value={2}>اجازه سفارش بدون محدودیت</option>
+                                                      <option value={0}>
+                                                        عدم اجازه سفارش در صورت
+                                                        اتمام
+                                                      </option>
+                                                      <option value={1}>
+                                                        اجازه سفارش با اطلاع
+                                                      </option>
+                                                      <option value={2}>
+                                                        اجازه سفارش بدون محدودیت
+                                                      </option>
                                                     </select>
                                                   </div>
                                                 </div>
@@ -1276,19 +1450,32 @@ export default function ProductModalButton({
                                                     className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs text-gray-900"
                                                     value={v.stockStatus ?? 1}
                                                     onChange={(e) => {
-                                                      const val = Number(e.target.value);
+                                                      const val = Number(
+                                                        e.target.value
+                                                      );
                                                       setVariants((prev) =>
                                                         prev.map((row) =>
-                                                          row.tempId === v.tempId
-                                                            ? { ...row, stockStatus: val }
+                                                          row.tempId ===
+                                                            v.tempId
+                                                            ? {
+                                                              ...row,
+                                                              stockStatus:
+                                                                val,
+                                                            }
                                                             : row
                                                         )
                                                       );
                                                     }}
                                                   >
-                                                    <option value={1}>موجود در انبار</option>
-                                                    <option value={2}>ناموجود</option>
-                                                    <option value={3}>قابل سفارش (Backorder)</option>
+                                                    <option value={1}>
+                                                      موجود در انبار
+                                                    </option>
+                                                    <option value={2}>
+                                                      ناموجود
+                                                    </option>
+                                                    <option value={3}>
+                                                      قابل سفارش (Backorder)
+                                                    </option>
                                                   </select>
                                                 </div>
                                               )}
@@ -1314,7 +1501,12 @@ export default function ProductModalButton({
                                                     const val = e.target.value;
                                                     setVariants((prev) =>
                                                       prev.map((row) =>
-                                                        row.tempId === v.tempId ? { ...row, weightKg: val } : row
+                                                        row.tempId === v.tempId
+                                                          ? {
+                                                            ...row,
+                                                            weightKg: val,
+                                                          }
+                                                          : row
                                                       )
                                                     );
                                                   }}
@@ -1336,7 +1528,12 @@ export default function ProductModalButton({
                                                     const val = e.target.value;
                                                     setVariants((prev) =>
                                                       prev.map((row) =>
-                                                        row.tempId === v.tempId ? { ...row, lengthCm: val } : row
+                                                        row.tempId === v.tempId
+                                                          ? {
+                                                            ...row,
+                                                            lengthCm: val,
+                                                          }
+                                                          : row
                                                       )
                                                     );
                                                   }}
@@ -1358,7 +1555,12 @@ export default function ProductModalButton({
                                                     const val = e.target.value;
                                                     setVariants((prev) =>
                                                       prev.map((row) =>
-                                                        row.tempId === v.tempId ? { ...row, widthCm: val } : row
+                                                        row.tempId === v.tempId
+                                                          ? {
+                                                            ...row,
+                                                            widthCm: val,
+                                                          }
+                                                          : row
                                                       )
                                                     );
                                                   }}
@@ -1380,7 +1582,12 @@ export default function ProductModalButton({
                                                     const val = e.target.value;
                                                     setVariants((prev) =>
                                                       prev.map((row) =>
-                                                        row.tempId === v.tempId ? { ...row, heightCm: val } : row
+                                                        row.tempId === v.tempId
+                                                          ? {
+                                                            ...row,
+                                                            heightCm: val,
+                                                          }
+                                                          : row
                                                       )
                                                     );
                                                   }}
@@ -1401,7 +1608,12 @@ export default function ProductModalButton({
                                                   const val = e.target.value;
                                                   setVariants((prev) =>
                                                     prev.map((row) =>
-                                                      row.tempId === v.tempId ? { ...row, description: val } : row
+                                                      row.tempId === v.tempId
+                                                        ? {
+                                                          ...row,
+                                                          description: val,
+                                                        }
+                                                        : row
                                                     )
                                                   );
                                                 }}
@@ -1424,7 +1636,13 @@ export default function ProductModalButton({
                                                     const val = e.target.value;
                                                     setVariants((prev) =>
                                                       prev.map((row) =>
-                                                        row.tempId === v.tempId ? { ...row, minOrderQuantity: val } : row
+                                                        row.tempId === v.tempId
+                                                          ? {
+                                                            ...row,
+                                                            minOrderQuantity:
+                                                              val,
+                                                          }
+                                                          : row
                                                       )
                                                     );
                                                   }}
@@ -1434,7 +1652,8 @@ export default function ProductModalButton({
                                               {/* حداکثر تعداد */}
                                               <div>
                                                 <label className="mb-1 block text-xs text-gray-700 text-right">
-                                                  حداکثر تعداد (۰ = بدون محدودیت)
+                                                  حداکثر تعداد (۰ = بدون
+                                                  محدودیت)
                                                 </label>
                                                 <input
                                                   type="number"
@@ -1445,7 +1664,13 @@ export default function ProductModalButton({
                                                     const val = e.target.value;
                                                     setVariants((prev) =>
                                                       prev.map((row) =>
-                                                        row.tempId === v.tempId ? { ...row, maxOrderQuantity: val } : row
+                                                        row.tempId === v.tempId
+                                                          ? {
+                                                            ...row,
+                                                            maxOrderQuantity:
+                                                              val,
+                                                          }
+                                                          : row
                                                       )
                                                     );
                                                   }}
@@ -1466,7 +1691,12 @@ export default function ProductModalButton({
                                                     const val = e.target.value;
                                                     setVariants((prev) =>
                                                       prev.map((row) =>
-                                                        row.tempId === v.tempId ? { ...row, quantityStep: val } : row
+                                                        row.tempId === v.tempId
+                                                          ? {
+                                                            ...row,
+                                                            quantityStep: val,
+                                                          }
+                                                          : row
                                                       )
                                                     );
                                                   }}
@@ -1474,10 +1704,8 @@ export default function ProductModalButton({
                                               </div>
                                             </div>
                                           </div>
-
                                         </div>
-                                      )
-                                      }
+                                      )}
                                     </div>
                                   );
                                   {
@@ -1487,14 +1715,12 @@ export default function ProductModalButton({
                                           <p key={idx}>• {msg}</p>
                                         ))}
                                       </div>
-                                    )
+                                    );
                                   }
                                 })}
                               </div>
                             </section>
                           )}
-
-
 
                           {/* قیمت/تخفیف/موجودی فقط در محصول ساده */}
                           {/* تنظیمات فروش و موجودی فقط در محصول ساده (VendorOffer) */}
@@ -1508,12 +1734,18 @@ export default function ProductModalButton({
                                 <select
                                   name="saleModel"
                                   value={saleModel}
-                                  onChange={(e) => setSaleModel(Number(e.target.value))}
+                                  onChange={(e) =>
+                                    setSaleModel(Number(e.target.value))
+                                  }
                                   className="w-full rounded border border-gray-300 px-3 py-1.5 text-xs text-gray-900 focus:border-[#2271b1] focus:ring-1 focus:ring-[#2271b1]"
                                 >
                                   {/* مقادیر را با enum واقعی ProductSaleModel ست کن */}
-                                  <option value={0}>فروش آنلاین (پیش‌فرض)</option>
-                                  <option value={1}>نمایش کاتالوگ بدون قیمت</option>
+                                  <option value={0}>
+                                    فروش آنلاین (پیش‌فرض)
+                                  </option>
+                                  <option value={1}>
+                                    نمایش کاتالوگ بدون قیمت
+                                  </option>
                                   <option value={2}>تماس برای قیمت</option>
                                 </select>
                               </label>
@@ -1541,7 +1773,9 @@ export default function ProductModalButton({
                                   type="number"
                                   name="discountPrice"
                                   min={0}
-                                  defaultValue={product?.defaultOfferDiscountPrice ?? ""}
+                                  defaultValue={
+                                    product?.defaultOfferDiscountPrice ?? ""
+                                  }
                                   className="w-full rounded border border-gray-300 px-3 py-1.5 text-xs text-gray-900 focus:border-[#2271b1] focus:ring-1 focus:ring-[#2271b1]"
                                 />
                               </label>
@@ -1553,7 +1787,9 @@ export default function ProductModalButton({
                                     type="checkbox"
                                     name="manageStock"
                                     checked={manageStock}
-                                    onChange={(e) => setManageStock(e.target.checked)}
+                                    onChange={(e) =>
+                                      setManageStock(e.target.checked)
+                                    }
                                   />
                                   <span>مدیریت موجودی انبار؟</span>
                                 </label>
@@ -1572,7 +1808,8 @@ export default function ProductModalButton({
                                         defaultValue={
                                           product?.isVariantProduct
                                             ? 0
-                                            : (product as any)?.defaultOfferStock ?? 0
+                                            : (product as any)
+                                              ?.defaultOfferStock ?? 0
                                         }
                                         className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs text-gray-900"
                                       />
@@ -1587,7 +1824,9 @@ export default function ProductModalButton({
                                         name="lowStockThreshold"
                                         min={0}
                                         value={lowStockThreshold}
-                                        onChange={(e) => setLowStockThreshold(e.target.value)}
+                                        onChange={(e) =>
+                                          setLowStockThreshold(e.target.value)
+                                        }
                                         className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs text-gray-900"
                                       />
                                     </div>
@@ -1599,12 +1838,22 @@ export default function ProductModalButton({
                                       <select
                                         name="backorderPolicy"
                                         value={backorderPolicy}
-                                        onChange={(e) => setBackorderPolicy(Number(e.target.value))}
+                                        onChange={(e) =>
+                                          setBackorderPolicy(
+                                            Number(e.target.value)
+                                          )
+                                        }
                                         className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs text-gray-900"
                                       >
-                                        <option value={0}>عدم اجازه سفارش در صورت اتمام</option>
-                                        <option value={1}>اجازه سفارش با اطلاع به مشتری</option>
-                                        <option value={2}>اجازه سفارش بدون محدودیت</option>
+                                        <option value={0}>
+                                          عدم اجازه سفارش در صورت اتمام
+                                        </option>
+                                        <option value={1}>
+                                          اجازه سفارش با اطلاع به مشتری
+                                        </option>
+                                        <option value={2}>
+                                          اجازه سفارش بدون محدودیت
+                                        </option>
                                       </select>
                                     </div>
                                   </div>
@@ -1617,22 +1866,26 @@ export default function ProductModalButton({
                                     <select
                                       name="stockStatus"
                                       value={stockStatus}
-                                      onChange={(e) => setStockStatus(Number(e.target.value))}
+                                      onChange={(e) =>
+                                        setStockStatus(Number(e.target.value))
+                                      }
                                       className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs text-gray-900"
                                       defaultValue={
-                                        product?.defaultOfferStockStatus?.toString() ?? "1"
+                                        product?.defaultOfferStockStatus?.toString() ??
+                                        "1"
                                       }
                                     >
                                       <option value={1}>موجود در انبار</option>
                                       <option value={2}>ناموجود</option>
-                                      <option value={3}>قابل سفارش (Backorder)</option>
+                                      <option value={3}>
+                                        قابل سفارش (Backorder)
+                                      </option>
                                     </select>
                                   </div>
                                 )}
                               </div>
                             </div>
                           )}
-
                         </div>
                       </div>
                     </div>
@@ -1716,7 +1969,9 @@ export default function ProductModalButton({
                             name="seoMetaDescription"
                             rows={2}
                             value={seoMetaDescription}
-                            onChange={(e) => setSeoMetaDescription(e.target.value)}
+                            onChange={(e) =>
+                              setSeoMetaDescription(e.target.value)
+                            }
                             className="w-full rounded border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-[#2271b1] focus:ring-1 focus:ring-[#2271b1]"
                           />
                           <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-600">
@@ -1772,7 +2027,8 @@ export default function ProductModalButton({
                             placeholder="https://example.com/product/..."
                           />
                           <p className="mt-1 text-[11px] text-gray-500">
-                            اگر خالی بماند، به‌طور خودکار از آدرس خود صفحه استفاده می‌شود.
+                            اگر خالی بماند، به‌طور خودکار از آدرس خود صفحه
+                            استفاده می‌شود.
                           </p>
                         </label>
 
@@ -1812,7 +2068,9 @@ export default function ProductModalButton({
                                 <input
                                   type="checkbox"
                                   checked={robotsNoFollow}
-                                  onChange={(e) => setRobotsNoFollow(e.target.checked)}
+                                  onChange={(e) =>
+                                    setRobotsNoFollow(e.target.checked)
+                                  }
                                 />
                               </label>
 
@@ -1821,7 +2079,9 @@ export default function ProductModalButton({
                                 <input
                                   type="checkbox"
                                   checked={robotsNoImageIndex}
-                                  onChange={(e) => setRobotsNoImageIndex(e.target.checked)}
+                                  onChange={(e) =>
+                                    setRobotsNoImageIndex(e.target.checked)
+                                  }
                                 />
                               </label>
                             </div>
@@ -1849,7 +2109,9 @@ export default function ProductModalButton({
                                 <input
                                   type="checkbox"
                                   checked={robotsNoArchive}
-                                  onChange={(e) => setRobotsNoArchive(e.target.checked)}
+                                  onChange={(e) =>
+                                    setRobotsNoArchive(e.target.checked)
+                                  }
                                 />
                               </label>
 
@@ -1858,13 +2120,14 @@ export default function ProductModalButton({
                                 <input
                                   type="checkbox"
                                   checked={robotsNoSnippet}
-                                  onChange={(e) => setRobotsNoSnippet(e.target.checked)}
+                                  onChange={(e) =>
+                                    setRobotsNoSnippet(e.target.checked)
+                                  }
                                 />
                               </label>
                             </div>
                           </div>
                         </div>
-
 
                         {/* Schema JSON-LD */}
                         {/* اسکیما (JSON-LD) + لیست پرکاربردها شبیه RankMath */}
@@ -1874,7 +2137,8 @@ export default function ProductModalButton({
                               اسکیما (JSON-LD)
                             </span>
                             <span className="text-[11px] text-gray-400">
-                              یک نوع اسکیما را از لیست زیر انتخاب کنید یا مستقیم JSON را ویرایش کنید.
+                              یک نوع اسکیما را از لیست زیر انتخاب کنید یا مستقیم
+                              JSON را ویرایش کنید.
                             </span>
                           </div>
 
@@ -1921,7 +2185,9 @@ export default function ProductModalButton({
                             type="checkbox"
                             name="autoGenerateSnippet"
                             checked={autoGenerateSnippet}
-                            onChange={(e) => setAutoGenerateSnippet(e.target.checked)}
+                            onChange={(e) =>
+                              setAutoGenerateSnippet(e.target.checked)
+                            }
                           />
                           <span>تولید خودکار اسنیپت</span>
                         </label>
@@ -1931,7 +2197,9 @@ export default function ProductModalButton({
                             type="checkbox"
                             name="autoGenerateHeadTags"
                             checked={autoGenerateHeadTags}
-                            onChange={(e) => setAutoGenerateHeadTags(e.target.checked)}
+                            onChange={(e) =>
+                              setAutoGenerateHeadTags(e.target.checked)
+                            }
                           />
                           <span>تولید خودکار تگ‌های head</span>
                         </label>
@@ -1941,7 +2209,9 @@ export default function ProductModalButton({
                             type="checkbox"
                             name="includeInSitemap"
                             checked={includeInSitemap}
-                            onChange={(e) => setIncludeInSitemap(e.target.checked)}
+                            onChange={(e) =>
+                              setIncludeInSitemap(e.target.checked)
+                            }
                           />
                           <span>قرار گرفتن در Sitemap</span>
                         </label>
@@ -2056,38 +2326,30 @@ export default function ProductModalButton({
                           <span className="mb-1 block text-xs text-gray-700">
                             برند
                           </span>
-                          <select
+                          <SearchableSelect
                             name="brandId"
-                            defaultValue={product?.brandId ?? ""}
-                            className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 focus:border-[#2271b1] focus:ring-1 focus:ring-[#2271b1]"
-                          >
-                            <option value="">بدون برند</option>
-                            {brandOptions.map((b) => (
-                              <option key={b.id} value={b.id}>
-                                {b.title}
-                              </option>
-                            ))}
-                          </select>
+                            options={brandSelectOptions}
+                            value={brandId}
+                            onChange={setBrandId}
+                            placeholder="انتخاب برند"
+                            emptyLabel="بدون برند"
+                          />
                         </label>
-
-                        <label className="block text-right">
-                          <span className="mb-1 block text-xs text-gray-700">
-                            فروشنده
-                          </span>
-                          <select
-                            name="ownerVendorId"
-                            required
-                            defaultValue={product?.ownerVendorId ?? ""}
-                            className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 focus:border-[#2271b1] focus:ring-1 focus:ring-[#2271b1]"
-                          >
-                            <option value="">فروشگاه اصلی</option>
-                            {vendorOptions.map((v) => (
-                              <option key={v.id} value={v.id}>
-                                {v.storeName}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
+                        {multiVendorEnabled && (
+                          <label className="block text-right">
+                            <span className="mb-1 block text-xs text-gray-700">
+                              فروشنده
+                            </span>
+                            <SearchableSelect
+                              name="ownerVendorId"
+                              options={vendorSelectOptions}
+                              value={ownerVendorId}
+                              onChange={setOwnerVendorId}
+                              placeholder="انتخاب فروشنده"
+                              emptyLabel="فروشگاه اصلی"
+                            />
+                          </label>
+                        )}
                       </div>
                     </div>
 
@@ -2137,7 +2399,6 @@ export default function ProductModalButton({
                       </div>
                     </div>
 
-
                     {/* برچسب‌ها */}
                     {/* برچسب‌ها */}
                     <div className="rounded border border-gray-300 bg-white text-right">
@@ -2151,7 +2412,10 @@ export default function ProductModalButton({
                           allTags.map((t) => {
                             const checked = selectedTagIds.includes(t.id);
                             return (
-                              <label key={t.id} className="flex items-center gap-2">
+                              <label
+                                key={t.id}
+                                className="flex items-center gap-2"
+                              >
                                 <input
                                   type="checkbox"
                                   name="tagIds"
@@ -2179,7 +2443,9 @@ export default function ProductModalButton({
                       {/* ساخت برچسب جدید درجا */}
                       <div className="border-t border-gray-200 px-3 py-2 space-y-2">
                         {tagError && (
-                          <p className="text-[11px] text-red-600 text-right">{tagError}</p>
+                          <p className="text-[11px] text-red-600 text-right">
+                            {tagError}
+                          </p>
                         )}
 
                         <div className="flex items-center gap-2">
@@ -2207,8 +2473,9 @@ export default function ProductModalButton({
                         </div>
 
                         <p className="text-[10px] text-gray-400 text-right">
-                          با وارد کردن نام و زدن «افزودن برچسب»، برچسب جدید ساخته می‌شود و
-                          به‌صورت خودکار برای این محصول انتخاب می‌گردد.
+                          با وارد کردن نام و زدن «افزودن برچسب»، برچسب جدید
+                          ساخته می‌شود و به‌صورت خودکار برای این محصول انتخاب
+                          می‌گردد.
                         </p>
                       </div>
                     </div>
@@ -2234,7 +2501,9 @@ export default function ProductModalButton({
                           type="checkbox"
                           name="allowCustomerQuestions"
                           checked={allowCustomerQuestions}
-                          onChange={(e) => setAllowCustomerQuestions(e.target.checked)}
+                          onChange={(e) =>
+                            setAllowCustomerQuestions(e.target.checked)
+                          }
                         />
                         <span>نمایش پرسش و پاسخ</span>
                       </label>
@@ -2244,11 +2513,12 @@ export default function ProductModalButton({
                           type="checkbox"
                           name="allowCustomerReviews"
                           checked={allowCustomerReviews}
-                          onChange={(e) => setAllowCustomerReviews(e.target.checked)}
+                          onChange={(e) =>
+                            setAllowCustomerReviews(e.target.checked)
+                          }
                         />
                         <span>نمایش دیدگاه‌ها</span>
                       </label>
-
                     </div>
                   </div>
                 </div>
@@ -2256,13 +2526,12 @@ export default function ProductModalButton({
             </DialogPanel>
           </div>
         </div>
-      </Dialog >
+      </Dialog>
 
       {/* انتخاب تصویر کاور (تک‌انتخابی) */}
-      < MediaPickerDialog
+      <MediaPickerDialog
         open={mediaOpen}
-        onClose={() => setMediaOpen(false)
-        }
+        onClose={() => setMediaOpen(false)}
         multiple={false}
         onSelect={(urls) => {
           const url = urls[0];

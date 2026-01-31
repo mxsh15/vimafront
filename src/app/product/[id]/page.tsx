@@ -4,7 +4,15 @@ import { getPublicProductCore } from "@/modules/product/public-api.server";
 import ProductOffersPanel from "./ProductOffersPanel";
 import ProductOffersSkeleton from "./ProductOffersSkeleton";
 
-export const metadata = { title: "جزئیات محصول" };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const product = await getPublicProductCore(id);
+  return { title: product.title };
+}
 
 export default async function ProductPage({
   params,

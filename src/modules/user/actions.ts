@@ -1,42 +1,57 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { createUser, updateUser, deleteUser } from "@/modules/user/api";
+import { revalidateTag } from "next/cache";
 import type { UserUpsertInput } from "@/modules/user/schemas";
-import { apiFetch } from "@/lib/api";
+import {
+  createUser,
+  updateUser,
+  deleteUser,
+  restoreUser,
+  hardDeleteUser,
+} from "@/modules/user/api";
+
+const TAGS = {
+  list: "users",
+  trash: "users:trash",
+  detail: (id: string) => `user:${id}`,
+};
+
+function normalizeEmail(v: unknown) {
+  return String(v ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+function normalizePhone(v: unknown) {
+  const s = String(v ?? "").trim();
+  return s.length ? s : null;
+}
 
 export async function upsertUserFormAction(formData: FormData) {
-  const id = (formData.get("id") as string) || undefined;
+  const id = (formData.get("id") as string | null)?.trim() || undefined;
 
-  const password = (formData.get("password") as string) || "";
-  const passwordConfirm = (formData.get("passwordConfirm") as string) || "";
+  const password = String(formData.get("password") ?? "");
+  const passwordConfirm = String(formData.get("passwordConfirm") ?? "");
 
-  if (!id && !password) {
-    throw new Error("رمز عبور الزامی است.");
-  }
+  if (!id && !password) throw new Error("رمز عبور الزامی است.");
 
   if (password) {
-    if (!passwordConfirm) {
-      throw new Error("لطفاً تکرار رمز عبور را وارد کنید.");
-    }
-    if (password !== passwordConfirm) {
+    if (!passwordConfirm) throw new Error("لطفاً تکرار رمز عبور را وارد کنید.");
+    if (password !== passwordConfirm)
       throw new Error("رمز عبور و تکرار آن یکسان نیستند.");
-    }
   }
 
   const vendorIds = formData
     .getAll("vendorIds")
-    .map((x) => String(x))
-    .filter((x) => x && x !== "");
+    .map((x) => String(x).trim())
+    .filter(Boolean);
 
   const payload: UserUpsertInput = {
-    email: String(formData.get("email") || "")
-      .trim()
-      .toLowerCase(),
+    email: normalizeEmail(formData.get("email")),
     password: password || undefined,
-    firstName: String(formData.get("firstName") || "").trim(),
-    lastName: String(formData.get("lastName") || "").trim(),
-    phoneNumber: (formData.get("phoneNumber") as string) || null,
+    firstName: String(formData.get("firstName") ?? "").trim(),
+    lastName: String(formData.get("lastName") ?? "").trim(),
+    phoneNumber: normalizePhone(formData.get("phoneNumber")),
     role: Number(formData.get("role") ?? "0"),
     roleId: (formData.get("roleId") as string) || null,
     vendorIds,
@@ -50,37 +65,46 @@ export async function upsertUserFormAction(formData: FormData) {
 
   if (id) {
     await updateUser(id, payload);
+    revalidateTag(TAGS.detail(id), "max");
   } else {
-    if (!payload.password) {
-      throw new Error("رمز عبور الزامی است.");
-    }
+    if (!payload.password) throw new Error("رمز عبور الزامی است.");
     await createUser(payload);
   }
 
-  revalidatePath("/admin/users");
+  revalidateTag(TAGS.list, "max");
+  revalidateTag(TAGS.trash, "max");
 }
 
 export async function upsertUserAction(
   id: string | undefined,
   payload: UserUpsertInput
 ) {
-  if (id) await updateUser(id, payload);
-  else await createUser(payload);
-  revalidatePath("/admin/users");
+  if (id) {
+    await updateUser(id, payload);
+    revalidateTag(TAGS.detail(id), "max");
+  } else {
+    await createUser(payload);
+  }
+  revalidateTag(TAGS.list, "max");
+  revalidateTag(TAGS.trash, "max");
 }
 
 export async function deleteUserAction(id: string) {
   await deleteUser(id);
-  revalidatePath("/admin/users");
+  revalidateTag(TAGS.list, "max");
+  revalidateTag(TAGS.trash, "max");
+  revalidateTag(TAGS.detail(id), "max");
 }
 
 export async function restoreUserAction(id: string) {
-  await serverFetch<void>(`users/${id}/restore`, { method: "POST" });
-  revalidatePath("/admin/users");
-  revalidatePath("/admin/users/trash");
+  await restoreUser(id);
+  revalidateTag(TAGS.list, "max");
+  revalidateTag(TAGS.trash, "max");
+  revalidateTag(TAGS.detail(id), "max");
 }
 
 export async function hardDeleteUserAction(id: string) {
-  await serverFetch<void>(`users/${id}/hard`, { method: "DELETE" });
-  revalidatePath("/admin/users/trash");
+  await hardDeleteUser(id);
+  revalidateTag(TAGS.trash, "max");
+  revalidateTag(TAGS.detail(id), "max");
 }
