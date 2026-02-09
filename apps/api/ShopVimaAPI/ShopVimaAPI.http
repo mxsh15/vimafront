@@ -1,0 +1,6 @@
+@ShopVimaAPI_HostAddress = http://localhost:5167
+
+GET {{ShopVimaAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

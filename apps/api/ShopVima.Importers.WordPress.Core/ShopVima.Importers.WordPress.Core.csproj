@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.3.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="2.3.0" />
+    <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.3.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.11" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Abstractions\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ShopView.Domain\ShopVima.Domain.csproj" />
+    <ProjectReference Include="..\ShopVima.Application\ShopVima.Application.csproj" />
+    <ProjectReference Include="..\ShopVima.Infrastructure\ShopVima.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

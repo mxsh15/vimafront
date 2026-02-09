@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "ShopVima.Importers.WordPress.Runner": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
