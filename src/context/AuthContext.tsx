@@ -2,13 +2,14 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getCurrentUser, removeToken, setToken } from "@/modules/auth/client-api";
+import { getCurrentUser } from "@/modules/auth/client-api";
+import { logoutAction } from "@/modules/auth/actions";
 import { UserDto } from "@/modules/auth/types";
 
 interface AuthContextType {
   user: UserDto | null;
   loading: boolean;
-  login: (token: string, user: UserDto) => void;
+  login: (user: UserDto) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -26,31 +27,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function loadUser() {
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
       const currentUser = await getCurrentUser();
       setUser(currentUser);
-    } catch (error) {
-      console.error("Failed to load user:", error);
-      removeToken();
+    } catch {
+      setUser(null);
     } finally {
       setLoading(false);
     }
   }
 
-  function login(token: string, userData: UserDto) {
-    setToken(token);
+  function login(userData: UserDto) {
     setUser(userData);
   }
 
   function logout() {
-    removeToken();
-    setUser(null);
-    router.push("/login");
+    // HttpOnly cookie را فقط سرور می‌تواند پاک کند
+    logoutAction().finally(() => {
+      setUser(null);
+      router.push("/login");
+      router.refresh();
+    });
   }
 
   return (
@@ -75,4 +71,3 @@ export function useAuth() {
   }
   return context;
 }
-

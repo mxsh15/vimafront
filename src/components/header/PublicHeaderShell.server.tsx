@@ -4,7 +4,11 @@ import CartCountNumber from "./CartCountNumber.server";
 import { getPublicCategoryOptionsCached } from "@/modules/category/server";
 
 function CartCountFallback({ storeName, logoUrl }: { storeName?: string; logoUrl?: string | null }) {
-  return <PublicHeader storeName={storeName} logoUrl={logoUrl} cartCount={0} initialCategoryOptions={[]} />;
+  return <PublicHeader
+    storeName={storeName}
+    logoUrl={logoUrl}
+    cartCount={0}
+    initialCategoryOptions={[]} />;
 }
 
 export default function PublicHeaderShell({ storeName, logoUrl }: { storeName?: string; logoUrl?: string | null }) {

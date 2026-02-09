@@ -12,6 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <PublicShell>{children}</PublicShell>
           </Suspense>
         </ClientProviders>
+        <div id="modal-root" />
       </body>
     </html>
   );

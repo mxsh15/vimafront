@@ -3,47 +3,46 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addToCart } from "@/modules/cart/api";
-import { getToken } from "@/modules/auth/client-api";
+import { useQueryClient } from "@tanstack/react-query";
+import { MY_CART_QUERY_KEY } from "../hooks";
 
 export function AddToCartButton({
     productId,
+    productSlug,
     vendorOfferId,
     disabled,
 }: {
     productId: string;
+    productSlug?: string;
     vendorOfferId: string;
     disabled?: boolean;
 }) {
     const router = useRouter();
     const [qty, setQty] = useState(1);
     const [loading, setLoading] = useState(false);
+    const qc = useQueryClient();
 
     async function handleAdd() {
-        // Cart API در بک‌اند Authorize است؛ پس بدون لاگین می‌بریم به ورود
-        const token = getToken();
-        if (!token) {
-            const returnUrl = `/product/${productId}`;
-            router.push(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
-            return;
-        }
-
         setLoading(true);
         try {
-            await addToCart({
-                productId,
-                vendorOfferId,
-                quantity: qty,
-            });
-            router.refresh();
+            await addToCart({ productId, vendorOfferId, quantity: qty });
+            await qc.invalidateQueries({ queryKey: MY_CART_QUERY_KEY });
             alert("به سبد خرید اضافه شد ✅");
-        } catch (e) {
+        } catch (e: any) {
+            const status = e?.status || e?.cause?.status;
+            if (status === 401) {
+                const returnUrl = productSlug
+                    ? `/product/${encodeURIComponent(productSlug)}`
+                    : `/product/${productId}`;
+                router.push(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
+                return;
+            }
             console.error(e);
             alert("خطا در افزودن به سبد خرید");
         } finally {
             setLoading(false);
         }
     }
-
     return (
         <div className="flex items-center gap-2">
             <input

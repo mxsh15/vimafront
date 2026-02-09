@@ -37,13 +37,10 @@ export default function LoginPage() {
     startTransition(async () => {
       const result = await loginAction(formData);
       if (result.success && result.data) {
-        login(result.data.token, result.data.user);
-        // ریدایرکت بر اساس نقش کاربر
-        if (result.data.user.role === "Admin") {
-          router.push("/admin");
-        } else {
-          router.push("/");
-        }
+        login(result.data.user);
+
+        if (result.data.user.role === "Admin") router.push("/admin");
+        else router.push("/");
       } else {
         setError(result.error || "خطا در ورود");
       }

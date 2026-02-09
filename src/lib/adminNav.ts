@@ -43,9 +43,8 @@ export type AdminNavGroup = {
 
 export const adminNavTop: AdminNavItem[] = [
   { name: "داشبورد", href: "/admin", icon: HomeIcon },
+  { name: "نمایش سایت", href: "/", icon: HomeIcon },
   { name: "کتابخانه چند رسانه ای", href: "/admin/media", icon: PhotoIcon },
-  { name: "بنر اسلایدر صفحه اصلی", href: "/admin/home-banners", icon: PhotoIcon },
-  { name: "سرویس‌های سریع صفحه اصلی", href: "/admin/quick-services", icon: PhotoIcon },
 ];
 
 const BASE_ADMIN_NAV_GROUPS: AdminNavGroup[] = [
@@ -63,6 +62,11 @@ const BASE_ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       {
         name: "تنظیمات سایت",
         href: "/admin/settings",
+        icon: AdjustmentsHorizontalIcon,
+      },
+      {
+        name: "قالب سایت",
+        href: "/admin/home-templates",
         icon: AdjustmentsHorizontalIcon,
       },
     ],

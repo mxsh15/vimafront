@@ -3,10 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { listPublicAmazingProducts } from "./api";
 
-export function usePublicAmazingProducts(take = 20) {
+export function usePublicAmazingProducts(params?: { take?: number; categoryId?: string | null }) {
+    const take = params?.take ?? 20;
+    const categoryId = params?.categoryId ?? null;
+
     return useQuery({
-        queryKey: ["amazing-products", take],
-        queryFn: () => listPublicAmazingProducts(take),
-        staleTime: 1000 * 60 * 3,
+        queryKey: ["public-amazing-products", take, categoryId],
+        queryFn: () => listPublicAmazingProducts({ take, categoryId }),
     });
 }

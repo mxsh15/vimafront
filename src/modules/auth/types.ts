@@ -3,7 +3,7 @@ export type UserRole = "Customer" | "Vendor" | "Admin";
 export type VendorInfoDto = {
   id: string;
   storeName: string;
-  role: string; // نقش کاربر در این Vendor (Owner, Manager, Staff, ...)
+  role: string;
   isActive: boolean;
 };
 
@@ -15,9 +15,9 @@ export type UserDto = {
   fullName: string;
   phoneNumber?: string;
   role: UserRole;
-  vendorId?: string; // برای سازگاری با کدهای قدیمی - اولین Vendor با نقش Owner
-  vendorIds?: string[]; // لیست تمام Vendorهایی که کاربر عضو آنهاست
-  vendors?: VendorInfoDto[]; // اطلاعات کامل Vendorها
+  vendorId?: string;
+  vendorIds?: string[];
+  vendors?: VendorInfoDto[];
 };
 
 export type AuthResponseDto = {
@@ -37,6 +37,4 @@ export type RegisterDto = {
   firstName: string;
   lastName: string;
   phoneNumber?: string;
-  role: UserRole;
 };
-

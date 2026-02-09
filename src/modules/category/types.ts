@@ -56,6 +56,30 @@ export type CategoryOptionDto = {
   id: string;
   title: string;
   parentId?: string | null;
+  sortOrder?: number;
+  iconUrl?: string | null;
 };
 
 export type CategoryRowWithLevel = CategoryListItemDto & { level: number };
+
+
+export type CategoryProductCardDto = {
+  id: string;
+  title: string;
+  slug: string;
+  imageUrl?: string | null;
+};
+
+export type CategoryProductsGridDto = {
+  categoryId: string;
+  categoryTitle: string;
+  categorySlug: string;
+  items: CategoryProductCardDto[];
+};
+
+export type CategoryDto = {
+  id: string;
+  title: string;
+  slug: string;
+  parentId?: string | null;
+}

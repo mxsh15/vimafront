@@ -22,6 +22,7 @@ import {
 import { MegaMenuOverlay } from "./MegaMenuOverlay";
 import { listPublicCategoryOptions } from "@/modules/category/api";
 import { CategoryOptionDto } from "@/modules/category/types";
+import { CartDropdown } from "./CartDropdown";
 
 export type MegaCategory = {
   id: string;
@@ -265,7 +266,6 @@ export default function PublicHeader({ storeName, logoUrl, cartCount, initialCat
           {/* Right: Logo */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
             {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={resolveMediaUrl(logoUrl)}
                 alt={storeName ?? "Logo"}
@@ -300,19 +300,7 @@ export default function PublicHeader({ storeName, logoUrl, cartCount, initialCat
 
           {/* Left: actions */}
           <div className="flex items-center gap-2 shrink-0">
-            <Link
-              href="/cart"
-              className="relative inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 transition"
-              aria-label="سبد خرید"
-              title="سبد خرید"
-            >
-              <ShoppingCart className="w-5 h-5 text-gray-800" />
-              {cartCount && cartCount > 0 ? (
-                <span className="absolute -top-2 -left-2 inline-flex min-w-5 h-5 items-center justify-center rounded-full bg-gray-900 text-white text-[11px] px-1">
-                  {cartCount.toLocaleString("fa-IR")}
-                </span>
-              ) : null}
-            </Link>
+            <CartDropdown />
 
             {isAuthenticated ? (
               <button

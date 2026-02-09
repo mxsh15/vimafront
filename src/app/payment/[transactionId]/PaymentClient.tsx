@@ -17,17 +17,9 @@ export default function PaymentClient({ transactionId }: { transactionId: string
     async function verify(success: boolean) {
         setLoading(true);
         try {
-            const token =
-                typeof window !== "undefined"
-                    ? localStorage.getItem("token") || localStorage.getItem("access_token")
-                    : null;
-
             const res = await fetch("/api/payments/verify", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     transactionId,
                     success,
@@ -36,10 +28,13 @@ export default function PaymentClient({ transactionId }: { transactionId: string
                 }),
             });
 
+            if (res.status === 401) {
+                router.push(`/login?returnUrl=${encodeURIComponent(`/payment/${transactionId}`)}`);
+                return;
+            }
 
             if (!res.ok) {
                 const text = await res.text().catch(() => "");
-                console.log("VERIFY ERROR", res.status, text);
                 throw new Error(text || `Verify failed (${res.status})`);
             }
 

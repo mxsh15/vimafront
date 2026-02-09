@@ -60,11 +60,11 @@ export function PersianDateTimeField({
                 />
             </div>
 
-            {valueIso ? (
+            {/* {valueIso ? (
                 <div className="text-[10px] text-slate-500" dir="ltr">
                     ISO → {valueIso}
                 </div>
-            ) : null}
+            ) : null} */}
         </div>
     );
 }

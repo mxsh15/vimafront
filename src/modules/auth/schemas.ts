@@ -13,7 +13,6 @@ export const registerSchema = z
     firstName: z.string().min(2, "نام باید حداقل ۲ کاراکتر باشد"),
     lastName: z.string().min(2, "نام خانوادگی باید حداقل ۲ کاراکتر باشد"),
     phoneNumber: z.string().optional(),
-    role: z.enum(["Customer", "Vendor", "Admin"]).default("Customer"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "رمز عبور و تکرار آن یکسان نیستند",
@@ -22,4 +21,3 @@ export const registerSchema = z
 
 export type LoginSchemaInput = z.infer<typeof loginSchema>;
 export type RegisterSchemaInput = z.infer<typeof registerSchema>;
-

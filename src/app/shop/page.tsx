@@ -43,7 +43,7 @@ async function ProductsGrid({ q, page }: { q: string; page: number }) {
       {products.map((p) => (
         <Link
           key={p.id}
-          href={`/product/${p.id}`}
+          href={`/product/${p.slug}`}
           className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition"
         >
           <div className="text-sm font-semibold line-clamp-2">{p.title}</div>

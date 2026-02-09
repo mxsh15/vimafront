@@ -9,17 +9,18 @@ export function toBool(v: FormDataEntryValue | null) {
 export function pick(form: FormData): UpsertPayload {
   const id = String(form.get("id") ?? "").trim();
 
-  const name = String(form.get("name") ?? "").trim();
-  if (!name) throw new Error("name is required");
+  const title = String(form.get("title") ?? "").trim();
+  if (!title) throw new Error("title is required");
 
   const slugRaw = String(form.get("slug") ?? "").trim();
   const logoRaw = String(form.get("logoUrl") ?? "").trim();
 
   return {
     id: id || undefined,
-    name,
+    title,
     slug: slugRaw ? slugRaw : null,
     logoUrl: logoRaw ? logoRaw : null,
     isActive: toBool(form.get("isActive")),
   };
 }
+

@@ -4,6 +4,8 @@ import type {
   ProductListItemDto,
   ProductDto,
   ProductUpsertInput,
+  PublicBestSellingProduct,
+  PublicCategoryProduct,
 } from "./types";
 
 export async function listProducts({
@@ -84,4 +86,21 @@ export async function restoreProduct(id: string) {
 // حذف قطعی
 export async function hardDeleteProduct(id: string) {
   return apiFetch(`products/${id}/hard`, { method: "DELETE" });
+}
+
+
+export function listPublicBestSellingProducts(params?: { take?: number }) {
+  const take = params?.take ?? 18;
+  const sp = new URLSearchParams({ take: String(take) });
+  return apiFetch<PublicBestSellingProduct[]>(`public/best-selling-products?${sp.toString()}`);
+}
+
+
+export function listPublicCategoryProducts(params: { take: number; categoryIds: string[] }) {
+  const take = params.take ?? 12;
+  const sp = new URLSearchParams();
+  sp.set("take", String(take));
+  const ids = (params.categoryIds ?? []).map(x => x.trim()).filter(Boolean).sort();
+  for (const id of ids) sp.append("categoryIds", id);
+  return apiFetch<PublicCategoryProduct[]>(`public/category-products?${sp.toString()}`);
 }

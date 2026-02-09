@@ -224,11 +224,13 @@ export type ProductDetailDto = {
 export type PublicProductCardDto = {
   id: string;
   title: string;
+  slug: string;
   primaryImageUrl?: string | null;
   minPrice?: number | null;
 };
 
 export type PublicVendorOfferDto = {
+  isDefaultForProduct: any;
   id: string;
   vendorId: string;
   vendorName: string;
@@ -243,10 +245,25 @@ export type PublicVendorOfferDto = {
 export type PublicProductDto = {
   id: string;
   title: string;
+  slug?: string | null;
+  sku?: string | null;
   descriptionHtml?: string | null;
   primaryImageUrl?: string | null;
+  galleryImageUrls?: string[];
+  categoryIds?: string[];
+  primaryCategoryId?: string | null;
+  categoryBreadcrumbs?: CategoryBreadcrumbItemDto[][];
+  brandTitle?: string | null;
+  ratingAverage?: number | null;
+  ratingCount?: number | null;
+  reviewCount?: number | null;
+  questionCount?: number | null;
+  features?: { title: string; value?: string | null }[];
+  specs?: { title: string; value: string }[];
   vendorOffers?: PublicVendorOfferDto[];
 };
+
+
 
 export type PublicProductCoreDto = Pick<
   PublicProductDto,
@@ -257,3 +274,31 @@ export type PublicProductOffersDto = {
   id: string;
   vendorOffers: PublicVendorOfferDto[];
 };
+
+
+export type PublicBestSellingProduct = {
+  id: string;
+  title: string;
+  slug: string;
+  imageUrl: string | null;
+  soldQuantity: number;
+};
+
+
+export type PublicCategoryProduct = {
+  id: string;
+  title: string;
+  slug: string;
+  imageUrl: string | null;
+  price: number | null;
+  oldPrice: number | null;
+  discountPercent: number | null;
+};
+
+
+export type CategoryBreadcrumbItemDto = {
+  id: string;
+  title: string;
+  slug: string;
+};
+

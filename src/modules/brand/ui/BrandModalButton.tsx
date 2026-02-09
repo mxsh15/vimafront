@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -69,12 +69,32 @@ export default function BrandModalButton({
 
   const triggerClass =
     triggerVariant === "primary"
-      ? `cursor-pointer inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
-          className ?? ""
-        }`
-      : `cursor-pointer inline-flex items-center gap-x-1.5 rounded-md bg-yellow-400 px-3 py-2 text-sm font-semibold text-dark shadow-xs hover:bg-yellow-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
-          className ?? ""
-        }`;
+      ? `cursor-pointer inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${className ?? ""
+      }`
+      : `cursor-pointer inline-flex items-center gap-x-1.5 rounded-md bg-yellow-400 px-3 py-2 text-sm font-semibold text-dark shadow-xs hover:bg-yellow-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${className ?? ""
+      }`;
+
+  function closeModal() {
+    setOpen(false);
+    setMediaOpen(false);
+    setLogoUrl("");
+    setContentHtml("");
+  }
+
+  useEffect(() => {
+    if (!open) return;
+
+    setLogoUrl(String(brand?.logoUrl ?? "").trim());
+    setContentHtml(String(brand?.contentHtml ?? "").trim());
+  }, [open, brand?.id]);
+
+
+  useEffect(() => {
+    if (open) return;
+    setMediaOpen(false);
+    setLogoUrl("");
+    setContentHtml("");
+  }, [open]);
 
   return (
     <>
@@ -143,7 +163,7 @@ export default function BrandModalButton({
                     e.preventDefault();
                     const formData = new FormData(e.currentTarget);
                     await upsert.mutateAsync(formData);
-                    setOpen(false);
+                    closeModal();
                   })
                 }
                 className="mt-6 space-y-5"
@@ -225,15 +245,20 @@ export default function BrandModalButton({
                       </button>
                     </div>
 
-                    {logoUrl && (
-                      <div className="mt-2">
-                        <img
-                          src={resolveMediaUrl(logoUrl)}
-                          alt="لوگوی انتخاب شده"
-                          className="h-32 w-auto object-contain text-center"
-                        />
-                      </div>
-                    )}
+                    {(() => {
+                      const resolved = resolveMediaUrl(logoUrl);
+                      if (!resolved) return null;
+
+                      return (
+                        <div className="mt-2">
+                          <img
+                            src={resolved}
+                            alt="لوگوی انتخاب شده"
+                            className="h-32 w-auto object-contain text-center"
+                          />
+                        </div>
+                      );
+                    })()}
                   </label>
                   <div className="block text-right sm:col-span-2">
                     <label className="mb-1 block text-sm text-gray-700">
@@ -256,7 +281,7 @@ export default function BrandModalButton({
                 <div className="mt-5 flex flex-col-reverse gap-3 sm:mt-6 sm:flex-row sm:justify-end">
                   <button
                     type="button"
-                    onClick={() => setOpen(false)}
+                    onClick={closeModal}
                     disabled={pending}
                     className="inline-flex justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-60"
                   >
@@ -270,8 +295,8 @@ export default function BrandModalButton({
                     {pending
                       ? "در حال ذخیره..."
                       : isEdit
-                      ? "ذخیره تغییرات"
-                      : "ذخیره"}
+                        ? "ذخیره تغییرات"
+                        : "ذخیره"}
                   </button>
                 </div>
               </form>
@@ -282,11 +307,14 @@ export default function BrandModalButton({
       <MediaPickerDialog
         open={mediaOpen}
         onClose={() => setMediaOpen(false)}
-        onSelect={(url) => {
-          setLogoUrl(url);
+        onSelect={(urls) => {
+          const first = Array.isArray(urls) ? urls[0] : "";
+          setLogoUrl((first ?? "").trim());
           setMediaOpen(false);
         }}
-        hasInitialImage={!!logoUrl}
+        hasInitialImage={!!logoUrl.trim()}
+        multiple={false}
+        initialSelectedUrls={logoUrl.trim() ? [logoUrl.trim()] : []}
       />
     </>
   );

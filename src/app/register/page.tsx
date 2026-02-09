@@ -15,18 +15,15 @@ export default function RegisterPage() {
     firstName: "",
     lastName: "",
     phoneNumber: "",
-    role: "Customer" as "Customer" | "Vendor" | "Admin",
   });
+
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const { login } = useAuth();
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -34,14 +31,12 @@ export default function RegisterPage() {
     setError(null);
 
     const data = new FormData();
-    Object.entries(formData).forEach(([key, value]) => {
-      data.append(key, value);
-    });
+    Object.entries(formData).forEach(([key, value]) => data.append(key, value));
 
     startTransition(async () => {
       const result = await registerAction(data);
       if (result.success && result.data) {
-        login(result.data.token, result.data.user);
+        login(result.data.user);
         router.push("/");
       } else {
         setError(result.error || "خطا در ثبت‌نام");

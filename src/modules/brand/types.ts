@@ -54,15 +54,19 @@ export type BrandOptionDto = {
   title: string;
 };
 
-
-// Backward-compat alias (older UI imports expect `Brand`)
 export type Brand = BrandDto;
-
 
 export type UpsertPayload = {
   id?: string;
-  name: string;
+  title: string;
   slug?: string | null;
   logoUrl?: string | null;
   isActive?: boolean;
+};
+
+export type BrandPublicOptionDto = {
+  id: string;
+  title: string;
+  slug: string;
+  logoUrl?: string | null;
 };

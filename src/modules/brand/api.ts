@@ -1,4 +1,4 @@
-import type { PagedResult, BrandDto, BrandListItemDto, BrandOptionDto } from "./types";
+import type { PagedResult, BrandDto, BrandListItemDto, BrandOptionDto, BrandPublicOptionDto } from "./types";
 import type { BrandUpsertInput } from "./schemas";
 import { apiFetch } from "@/lib/api";
 
@@ -91,4 +91,8 @@ export async function listBrandOptions(): Promise<BrandOptionDto[]> {
     id: b.id,
     title: b.title,
   }));
+}
+
+export async function listPublicBrandOptions(): Promise<BrandPublicOptionDto[]> {
+  return apiFetch(`public/brands/options`, { method: "GET" });
 }

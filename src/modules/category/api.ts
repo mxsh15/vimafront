@@ -1,6 +1,7 @@
 import { apiFetch } from "@/lib/api";
 import { PagedResult } from "../admin-audit-logs/types";
-import { CategoryListItemDto, CategoryOptionDto } from "./types";
+import { CategoryListItemDto, CategoryOptionDto, CategoryProductsGridDto } from "./types";
+import { serverFetch } from "@/lib/server/http";
 
 export async function listCategories(params: {
   page: number;
@@ -86,4 +87,15 @@ export async function listPublicCategoryOptions(params?: { onlyActive?: boolean 
   return apiFetch<CategoryOptionDto[]>(
     `/public/productCategories/options?onlyActive=${onlyActive ? "true" : "false"}`
   );
+}
+
+export async function getCategoryProductsGrid(args: {
+  categoryIds: string[];
+  take?: number;
+}): Promise<CategoryProductsGridDto[]> {
+  const take = Math.max(1, Math.min(8, Math.floor(args.take ?? 4)));
+  const qs = new URLSearchParams();
+  qs.set("take", String(take));
+  for (const id of args.categoryIds.filter(Boolean)) qs.append("categoryIds", id);
+  return apiFetch(`/public/category-products-grid?${qs.toString()}`, { method: "GET" });
 }

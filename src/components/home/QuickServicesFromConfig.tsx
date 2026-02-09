@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { usePublicQuickServices } from "@/modules/quickService/hooks";
 import { resolveMediaUrl } from "@/modules/media/resolve-url";
 
 function DotsIcon() {
@@ -28,42 +27,31 @@ function XIcon() {
   );
 }
 
-type QuickServiceItem = {
-  mediaAssetId: string;
-  mediaUrl: string;
+type QuickServiceConfigItem = {
+  iconUrl: string;
   title: string;
-  linkUrl: string | null;
+  href: string;
 };
 
-export function QuickServices() {
-  const q = usePublicQuickServices();
+export function QuickServicesFromConfig({
+  items,
+  title = "خدمات ما",
+  showMore = true,
+}: {
+  items: QuickServiceConfigItem[];
+  title?: string;
+  showMore?: boolean;
+}) {
   const [moreOpen, setMoreOpen] = useState(false);
-  const data = (q.data ?? []) as QuickServiceItem[];
-  const topNine = useMemo(() => data.slice(0, 9), [data]);
 
-  if (q.isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-6 grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-4 justify-items-center">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="flex flex-col items-center gap-2">
-            <div className="w-12 h-12 rounded-full bg-neutral-100 animate-pulse" />
-            <div className="h-3 w-14 bg-neutral-100 rounded animate-pulse" />
-          </div>
-        ))}
-      </div>
-    );
-  }
+  // اگر دیتایی نیست، چیزی نشون نده
+  if (!items?.length) return null;
 
-  // اگر هیچ داده‌ای نیست، چیزی نشون نده
-  if (data.length === 0) return null;
+  // مثل نمونه: 9 تا + آیتم دهم "بیشتر"
+  const topNine = useMemo(() => items.slice(0, 9), [items]);
+  const hasMore = items.length > 9;
 
-  const ItemCard = ({
-    title,
-    imgUrl,
-  }: {
-    title: string;
-    imgUrl: string;
-  }) => (
+  const ItemCard = ({ title, imgUrl }: { title: string; imgUrl: string }) => (
     <div className="flex flex-col items-center gap-2 cursor-pointer group select-none">
       <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden group-hover:bg-gray-200 transition">
         <img
@@ -78,24 +66,22 @@ export function QuickServices() {
     </div>
   );
 
-  const Grid = ({ items }: { items: QuickServiceItem[] }) => (
+  const Grid = ({ items }: { items: QuickServiceConfigItem[] }) => (
     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-5 justify-items-center">
-      {items.map((item) => {
-        const content = (
-          <ItemCard title={item.title} imgUrl={item.mediaUrl} />
-        );
+      {items.map((item, idx) => {
+        const content = <ItemCard title={item.title} imgUrl={item.iconUrl} />;
 
-        return item.linkUrl ? (
+        return item.href ? (
           <Link
-            key={item.mediaAssetId}
-            href={item.linkUrl}
+            key={item.href + idx}
+            href={item.href}
             className="contents"
             onClick={() => setMoreOpen(false)}
           >
             {content}
           </Link>
         ) : (
-          <div key={item.mediaAssetId}>{content}</div>
+          <div key={item.href + idx}>{content}</div>
         );
       })}
     </div>
@@ -103,36 +89,36 @@ export function QuickServices() {
 
   return (
     <>
-      {/* ردیف اصلی: دقیقاً ۱۰ تا (۹ تا از API + بیشتر) */}
-      <div className="container mx-auto px-4 py-6 grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-4 justify-items-center">
-        {topNine.map((item) => {
-          const content = <ItemCard title={item.title} imgUrl={item.mediaUrl} />;
+      <div className="mx-auto py-6 grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-4 justify-items-center">
+        {topNine.map((item, idx) => {
+          const content = <ItemCard title={item.title} imgUrl={item.iconUrl} />;
 
-          return item.linkUrl ? (
-            <Link key={item.mediaAssetId} href={item.linkUrl} className="contents">
+          return item.href ? (
+            <Link key={item.href + idx} href={item.href} className="contents">
               {content}
             </Link>
           ) : (
-            <div key={item.mediaAssetId}>{content}</div>
+            <div key={item.href + idx}>{content}</div>
           );
         })}
 
-        {/* آیتم دهم: بیشتر */}
-        <button
-          type="button"
-          onClick={() => setMoreOpen(true)}
-          className="flex flex-col items-center gap-2 cursor-pointer group"
-          aria-haspopup="dialog"
-          aria-expanded={moreOpen}
-        >
-          <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center group-hover:bg-gray-300 transition">
-            <DotsIcon />
-          </div>
-          <span className="text-xs text-gray-700 font-medium text-center">بیشتر</span>
-        </button>
+        {showMore && hasMore ? (
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            className="flex flex-col items-center gap-2 cursor-pointer group"
+            aria-haspopup="dialog"
+            aria-expanded={moreOpen}
+          >
+            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center group-hover:bg-gray-300 transition">
+              <DotsIcon />
+            </div>
+            <span className="text-xs text-gray-700 font-medium text-center">بیشتر</span>
+          </button>
+        ) : null}
       </div>
 
-      {/* مودال: نمایش همه QuickService ها */}
+      {/* مودال: نمایش همه آیتم‌ها */}
       {moreOpen ? (
         <div className="fixed inset-0 z-[100]">
           <div className="absolute inset-0 bg-black/45" onClick={() => setMoreOpen(false)} />
@@ -149,13 +135,13 @@ export function QuickServices() {
                   <XIcon />
                 </button>
 
-                <div className="text-sm font-bold text-slate-900">خدمات ما</div>
+                <div className="text-sm font-bold text-slate-900">{title}</div>
 
                 <div className="h-9 w-9" />
               </div>
 
               <div className="max-h-[70vh] overflow-auto p-6">
-                <Grid items={data} />
+                <Grid items={items} />
               </div>
             </div>
           </div>

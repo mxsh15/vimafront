@@ -5,7 +5,6 @@ import { getMyCart, removeFromCart, updateCartItem } from "@/modules/cart/api";
 import type { CartDto } from "@/modules/cart/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getToken } from "@/modules/auth/client-api";
 
 export default function CartPage() {
   const router = useRouter();
@@ -13,11 +12,6 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      router.replace(`/login?returnUrl=${encodeURIComponent("/cart")}`);
-      return;
-    }
     loadCart();
   }, []);
 
@@ -25,7 +19,12 @@ export default function CartPage() {
     try {
       const data = await getMyCart();
       setCart(data);
-    } catch (error) {
+    } catch (error: any) {
+      const status = error?.status || error?.cause?.status;
+      if (status === 401) {
+        router.replace(`/login?returnUrl=${encodeURIComponent("/cart")}`);
+        return;
+      }
       console.error("Failed to load cart", error);
     } finally {
       setLoading(false);

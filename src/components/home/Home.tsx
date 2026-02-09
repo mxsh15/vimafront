@@ -25,7 +25,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#fcfcfc] font-sans" dir="rtl">
       <main>
         <Stories />
-        <HeroSlider />
+        <HeroSlider items={[]} />
         <div className="mx-auto w-full max-w-[1336px] px-4">
           <QuickServices />
           <AmazingSlider />
