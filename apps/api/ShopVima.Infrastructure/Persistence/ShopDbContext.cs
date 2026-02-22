@@ -28,6 +28,7 @@ public class ShopDbContext : DbContext
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
     public DbSet<Vendor> Vendors => Set<Vendor>();
     public DbSet<VendorOffer> VendorOffers => Set<VendorOffer>();
+    public DbSet<VendorOfferPriceHistory> VendorOfferPriceHistories => Set<VendorOfferPriceHistory>();
     public DbSet<VendorOfferVariant> VendorOfferVariants => Set<VendorOfferVariant>();
     public DbSet<VendorOfferModerationLog> VendorOfferModerationLogs => Set<VendorOfferModerationLog>();
     public DbSet<User> Users => Set<User>();
@@ -42,8 +43,10 @@ public class ShopDbContext : DbContext
     public DbSet<Shipping> Shippings => Set<Shipping>();
     public DbSet<ShippingAddress> ShippingAddresses => Set<ShippingAddress>();
     public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<ReviewReaction> ReviewReactions => Set<ReviewReaction>();
     public DbSet<ProductQuestion> ProductQuestions => Set<ProductQuestion>();
     public DbSet<ProductAnswer> ProductAnswers => Set<ProductAnswer>();
+    public DbSet<ProductAnswerReaction> ProductAnswerReactions => Set<ProductAnswerReaction>();
     public DbSet<Coupon> Coupons => Set<Coupon>();
     public DbSet<CouponUsage> CouponUsages => Set<CouponUsage>();
     public DbSet<Discount> Discounts => Set<Discount>();
@@ -488,7 +491,32 @@ public class ShopDbContext : DbContext
             e.HasOne(x => x.ProductVariant)
              .WithMany(v => v.VendorOfferVariants)
              .HasForeignKey(x => x.ProductVariantId)
-             .OnDelete(DeleteBehavior.Restrict); // تغییر از Cascade به Restrict برای جلوگیری از cascade cycle
+             .OnDelete(DeleteBehavior.Restrict);
+        });
+
+
+        b.Entity<VendorOfferPriceHistory>(e =>
+        {
+            e.HasIndex(x => new { x.ProductId, x.CreatedAtUtc });
+            e.HasIndex(x => new { x.VendorOfferId, x.CreatedAtUtc });
+
+            e.Property(x => x.Price).HasColumnType("decimal(18,2)");
+            e.Property(x => x.DiscountPrice).HasColumnType("decimal(18,2)");
+
+            e.HasOne(x => x.VendorOffer)
+                .WithMany()
+                .HasForeignKey(x => x.VendorOfferId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.Product)
+                .WithMany()
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.Vendor)
+                .WithMany()
+                .HasForeignKey(x => x.VendorId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
 
@@ -710,6 +738,28 @@ public class ShopDbContext : DbContext
             e.HasIndex(x => new { x.ProductId, x.UserId }); // هر کاربر یک نظر برای هر محصول
         });
 
+
+        b.Entity<ReviewReaction>(e =>
+        {
+            e.HasIndex(x => new { x.ReviewId, x.UserId })
+                .IsUnique()
+                .HasFilter("[IsDeleted] = 0");
+
+            e.Property(x => x.Value).IsRequired();
+
+            e.HasOne(x => x.Review)
+                .WithMany()
+                .HasForeignKey(x => x.ReviewId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+
+
         // ==== ProductQuestion
         b.Entity<ProductQuestion>(e =>
         {
@@ -728,19 +778,47 @@ public class ShopDbContext : DbContext
         b.Entity<ProductAnswer>(e =>
         {
             e.Property(x => x.Answer).HasMaxLength(2000).IsRequired();
+
+            e.Property(x => x.LikeCount).IsRequired();
+            e.Property(x => x.DislikeCount).IsRequired();
+
             e.HasOne(x => x.Question)
                 .WithMany(q => q.Answers)
                 .HasForeignKey(x => x.QuestionId)
                 .OnDelete(DeleteBehavior.Cascade);
+
             e.HasOne(x => x.Vendor)
                 .WithMany()
                 .HasForeignKey(x => x.VendorId)
                 .OnDelete(DeleteBehavior.SetNull);
+
             e.HasOne(x => x.User)
                 .WithMany()
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
+
+
+        b.Entity<ProductAnswerReaction>(e =>
+        {
+            e.HasIndex(x => new { x.ProductAnswerId, x.UserId })
+                .IsUnique()
+                .HasFilter("[IsDeleted] = 0");
+
+            e.Property(x => x.Value).IsRequired();
+
+            e.HasOne(x => x.ProductAnswer)
+                .WithMany()
+                .HasForeignKey(x => x.ProductAnswerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+
 
         // ==== Coupon
         b.Entity<Coupon>(e =>
@@ -835,6 +913,10 @@ public class ShopDbContext : DbContext
              .IsRowVersion()
              .IsConcurrencyToken()
              .ValueGeneratedOnAddOrUpdate();
+
+            b.Property(x => x.MinOrderQuantity).HasDefaultValue(1);
+            b.Property(x => x.MaxOrderQuantity).HasDefaultValue(0);
+            b.Property(x => x.QuantityStep).HasDefaultValue(1);
         });
 
         // ==== Notification
@@ -1184,5 +1266,56 @@ public class ShopDbContext : DbContext
         });
 
 
+    }
+
+    public override int SaveChanges()
+    {
+        AddVendorOfferPriceHistorySnapshots();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        AddVendorOfferPriceHistorySnapshots();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void AddVendorOfferPriceHistorySnapshots()
+    {
+        var now = DateTime.UtcNow;
+
+        var offerEntries = ChangeTracker.Entries<VendorOffer>()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+            .ToList();
+
+        foreach (var e in offerEntries)
+        {
+            // اگر soft-delete شد، تاریخچه جدید ننویس
+            if (e.State == EntityState.Modified &&
+                e.Property(x => x.IsDeleted).IsModified &&
+                e.Entity.IsDeleted)
+            {
+                continue;
+            }
+
+            var priceChanged =
+                e.State == EntityState.Added ||
+                e.Property(x => x.Price).IsModified ||
+                e.Property(x => x.DiscountPrice).IsModified;
+
+            if (!priceChanged) continue;
+
+            VendorOfferPriceHistories.Add(new VendorOfferPriceHistory
+            {
+                VendorOfferId = e.Entity.Id,
+                ProductId = e.Entity.ProductId,
+                VendorId = e.Entity.VendorId,
+                Price = e.Entity.Price,
+                DiscountPrice = e.Entity.DiscountPrice,
+                CreatedAtUtc = now,
+                IsDeleted = false,
+                Status = true
+            });
+        }
     }
 }

@@ -7,6 +7,7 @@ public record ProductQuestionDetailDto(
     Guid UserId,
     string UserFullName,
     string Question,
+    bool IsApproved,
     bool IsAnswered,
     DateTime CreatedAtUtc,
     bool IsDeleted,

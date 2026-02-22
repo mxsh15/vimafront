@@ -20,5 +20,8 @@ public class Review : BaseEntity
 
     public bool IsVerifiedPurchase { get; set; } = false; // آیا خریدار واقعی است
     public Guid? OrderItemId { get; set; } // اگر از سفارش باشد
+
+    public int LikeCount { get; set; } = 0;
+    public int DislikeCount { get; set; } = 0;
 }
 

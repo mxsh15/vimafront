@@ -80,15 +80,13 @@ public class PublicStoreController : ControllerBase
     {
         var product = await _db.Products
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(p => p.Brand)
             .Include(p => p.ProductMedia)
             .Include(p => p.Features)
-            .Include(p => p.ProductCategoryAssignments)
-                .ThenInclude(x => x.Category)
-            .Include(p => p.AttributeValues)
-                .ThenInclude(x => x.Attribute)
-            .Include(p => p.AttributeValues)
-                .ThenInclude(x => x.Option)
+            .Include(p => p.ProductCategoryAssignments).ThenInclude(x => x.Category)
+            .Include(p => p.AttributeValues).ThenInclude(x => x.Attribute)
+            .Include(p => p.AttributeValues).ThenInclude(x => x.Option)
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
 
         if (product == null) return NotFound();
@@ -138,6 +136,11 @@ public class PublicStoreController : ControllerBase
             return "";
         }
 
+        var questionCount = await _db.ProductQuestions
+                                    .AsNoTracking()
+                                    .Where(x => x.ProductId == product.Id && x.IsApproved && !x.IsDeleted)
+                                    .CountAsync();
+
         return Ok(new
         {
             id = product.Id,
@@ -149,7 +152,7 @@ public class PublicStoreController : ControllerBase
             ratingAverage = product.RatingAverage,
             ratingCount = product.RatingCount,
             reviewCount = product.ReviewCount,
-            questionCount = product.QuestionCount,
+            questionCount = questionCount,
 
             descriptionHtml = product.DescriptionHtml,
             primaryImageUrl,
@@ -209,6 +212,13 @@ public class PublicStoreController : ControllerBase
 
         var product = await _db.Products
             .AsNoTracking()
+            .AsSplitQuery()
+            .Include(p => p.Brand)
+            .Include(p => p.ProductMedia)
+            .Include(p => p.Features)
+            .Include(p => p.AttributeValues).ThenInclude(x => x.Attribute)
+            .Include(p => p.AttributeValues).ThenInclude(x => x.Option)
+            .Include(p => p.ProductCategoryAssignments)
             .FirstOrDefaultAsync(p => !p.IsDeleted && candidates.Contains(p.Slug));
 
         if (product == null) return NotFound();
@@ -305,6 +315,21 @@ public class PublicStoreController : ControllerBase
 
         var primaryImageUrl = gallery.FirstOrDefault();
 
+        static string SpecValue(ProductAttributeValue av)
+        {
+            if (av.Option != null) return av.Option.Value;
+            if (!string.IsNullOrWhiteSpace(av.RawValue)) return av.RawValue;
+            if (av.BoolValue.HasValue) return av.BoolValue.Value ? "بله" : "خیر";
+            if (av.NumericValue.HasValue) return av.NumericValue.Value.ToString();
+            if (av.DateTimeValue.HasValue) return av.DateTimeValue.Value.ToString("yyyy-MM-dd");
+            return "";
+        }
+
+        var questionCount = await _db.ProductQuestions
+                                    .AsNoTracking()
+                                    .Where(q => q.ProductId == product.Id && q.IsApproved && !q.IsDeleted)
+                                    .CountAsync();
+
         return Ok(new
         {
             id = product.Id,
@@ -312,15 +337,29 @@ public class PublicStoreController : ControllerBase
             slug = product.Slug,
             sku = product.Sku,
             descriptionHtml = product.DescriptionHtml,
-
             primaryImageUrl,
             galleryImageUrls = gallery,
-
             categoryIds,
             primaryCategoryId,
             categoryBreadcrumbs,
-
-            vendorOffers = offers
+            vendorOffers = offers,
+            brandTitle = product.Brand != null ? product.Brand.Title : null,
+            questionCount,
+            features = product.Features
+                                .Where(f => !f.IsDeleted)
+                                .OrderBy(f => f.SortOrder)
+                                .Select(f => new { title = f.Title, value = f.Value })
+                                .ToList(),
+            specs = product.AttributeValues
+                            .Where(av => !av.IsDeleted)
+                            .OrderBy(av => av.DisplayOrder)
+                            .Select(av => new
+                            {
+                                title = av.Attribute != null ? av.Attribute.Name : "",
+                                value = SpecValue(av)
+                            })
+                            .Where(x => x.title != "" && x.value != "")
+                            .ToList()
         });
     }
 
@@ -344,5 +383,140 @@ public class PublicStoreController : ControllerBase
         }
 
         return path;
+    }
+
+    [HttpGet("{id:guid}/price-history")]
+    [AllowAnonymous]
+    public async Task<ActionResult<object>> GetPriceHistory(Guid id, [FromQuery] int days = 180, CancellationToken ct = default)
+    {
+        if (days <= 0) days = 180;
+        if (days > 3650) days = 3650;
+
+        var sinceUtc = DateTime.UtcNow.Date.AddDays(-days);
+
+        var settings = await _db.StoreSettings
+            .AsNoTracking()
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .FirstOrDefaultAsync(ct);
+
+        var storeVendorId = (settings != null && !settings.MultiVendorEnabled)
+            ? settings.StoreVendorId
+            : null;
+
+        // تاریخچه‌ها
+        var rows = await _db.VendorOfferPriceHistories
+            .AsNoTracking()
+            .Where(h => !h.IsDeleted && h.ProductId == id && h.CreatedAtUtc >= sinceUtc)
+            .Where(h => storeVendorId == null || h.VendorId == storeVendorId.Value)
+            .Select(h => new
+            {
+                h.CreatedAtUtc,
+                Day = h.CreatedAtUtc.Date,
+                h.VendorId,
+                VendorName = h.Vendor.StoreName,
+                h.Price,
+                h.DiscountPrice
+            })
+            .OrderBy(x => x.CreatedAtUtc)
+            .ToListAsync(ct);
+
+
+        if (rows.Count == 0)
+        {
+            var offersNow = await _db.VendorOffers
+                .AsNoTracking()
+                .Where(o => !o.IsDeleted && o.ProductId == id)
+                .Where(o => storeVendorId == null || o.VendorId == storeVendorId.Value)
+                .Select(o => new
+                {
+                    o.VendorId,
+                    VendorName = o.Vendor.StoreName,
+                    o.Price,
+                    o.DiscountPrice
+                })
+                .ToListAsync(ct);
+
+            var today = DateTime.UtcNow.Date;
+
+            var offerDtosNow = offersNow
+                .Select(o => new
+                {
+                    vendorId = o.VendorId,
+                    vendorName = o.VendorName,
+                    price = o.Price,
+                    discountPrice = o.DiscountPrice,
+                    effectivePrice = (o.DiscountPrice.HasValue && o.DiscountPrice.Value > 0 && o.DiscountPrice.Value < o.Price)
+                        ? o.DiscountPrice.Value
+                        : o.Price
+                })
+                .OrderByDescending(x => x.effectivePrice)
+                .ToList();
+
+            var maxNow = offerDtosNow.FirstOrDefault();
+
+            return Ok(new
+            {
+                productId = id,
+                points = new[]
+                {
+                new
+                {
+                    date = today.ToString("yyyy-MM-dd"),
+                    maxEffectivePrice = maxNow?.effectivePrice ?? 0m,
+                    maxVendorId = maxNow?.vendorId,
+                    maxVendorName = maxNow?.vendorName,
+                    offers = offerDtosNow
+                }
+            }
+            });
+        }
+
+
+        var byDay = rows
+            .GroupBy(x => x.Day)
+            .OrderBy(g => g.Key);
+
+        var points = new List<object>();
+
+        foreach (var dayGroup in byDay)
+        {
+            var offersLatestThatDay = dayGroup
+                .GroupBy(x => x.VendorId)
+                .Select(vg =>
+                {
+                    var last = vg.OrderByDescending(x => x.CreatedAtUtc).First();
+                    var effective = (last.DiscountPrice.HasValue && last.DiscountPrice.Value > 0 && last.DiscountPrice.Value < last.Price)
+                        ? last.DiscountPrice.Value
+                        : last.Price;
+
+                    return new
+                    {
+                        vendorId = last.VendorId,
+                        vendorName = last.VendorName,
+                        price = last.Price,
+                        discountPrice = last.DiscountPrice,
+                        effectivePrice = effective
+                    };
+                })
+                .OrderByDescending(x => x.effectivePrice)
+                .ToList();
+
+            var max = offersLatestThatDay.FirstOrDefault();
+
+            points.Add(new
+            {
+                date = dayGroup.Key.ToString("yyyy-MM-dd"),
+                maxEffectivePrice = max?.effectivePrice ?? 0m,
+                maxVendorId = max?.vendorId,
+                maxVendorName = max?.vendorName,
+                offers = offersLatestThatDay
+            });
+        }
+
+        return Ok(new
+        {
+            productId = id,
+            points
+        });
     }
 }

@@ -14,9 +14,15 @@ public record AdminVendorOfferDetailDto(
     VendorOfferStatus Status,
     bool ManageStock,
     int StockQuantity,
+
+    int MinOrderQuantity,
+    int MaxOrderQuantity,
+    int QuantityStep,
+
     bool IsDeleted,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc,
     DateTime? DeletedAtUtc,
     string RowVersion
 );
+

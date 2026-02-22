@@ -13,6 +13,25 @@ public class ProductQuestion : BaseEntity
     public string Question { get; set; } = default!;
     public bool IsAnswered { get; set; } = false;
 
-    public ICollection<ProductAnswer> Answers { get; set; } = new List<ProductAnswer>();
-}
+    public bool IsApproved { get; private set; }
+    public DateTime? ApprovedAtUtc { get; private set; }
+    public Guid? ApprovedByUserId { get; private set; }
 
+    public ICollection<ProductAnswer> Answers { get; set; } = new List<ProductAnswer>();
+
+    public void Approve(Guid approvedByUserId, DateTime utcNow)
+    {
+        IsApproved = true;
+        ApprovedAtUtc = utcNow;
+        ApprovedByUserId = approvedByUserId;
+        UpdatedAtUtc = utcNow;
+    }
+
+    public void Unapprove(Guid updatedByUserId, DateTime utcNow)
+    {
+        IsApproved = false;
+        ApprovedAtUtc = null;
+        ApprovedByUserId = updatedByUserId;
+        UpdatedAtUtc = utcNow;
+    }
+}

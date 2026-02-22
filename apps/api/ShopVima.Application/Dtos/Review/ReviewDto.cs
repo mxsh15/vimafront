@@ -13,6 +13,7 @@ public record ReviewDto(
     string? Comment,
     bool IsApproved,
     bool IsVerifiedPurchase,
+    int LikeCount,
+    int DislikeCount,
     DateTime CreatedAtUtc
 ) : BaseDto(Id, CreatedAtUtc, null, false, string.Empty);
-

@@ -1690,11 +1690,17 @@ namespace ShopVima.Infrastructure.Migrations
                     b.Property<DateTime?>("DeletedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("DislikeCount")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsVerified")
                         .HasColumnType("bit");
+
+                    b.Property<int>("LikeCount")
+                        .HasColumnType("int");
 
                     b.Property<Guid>("QuestionId")
                         .HasColumnType("uniqueidentifier");
@@ -1724,6 +1730,51 @@ namespace ShopVima.Infrastructure.Migrations
                     b.HasIndex("VendorId");
 
                     b.ToTable("ProductAnswers");
+                });
+
+            modelBuilder.Entity("ShopVima.Domain.Entities.ProductAnswerReaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("ProductAnswerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<bool>("Status")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Value")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ProductAnswerId", "UserId")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("ProductAnswerReactions");
                 });
 
             modelBuilder.Entity("ShopVima.Domain.Entities.ProductAttribute", b =>
@@ -2060,6 +2111,12 @@ namespace ShopVima.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("ApprovedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -2067,6 +2124,9 @@ namespace ShopVima.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("IsAnswered")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsApproved")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
@@ -2355,6 +2415,9 @@ namespace ShopVima.Infrastructure.Migrations
                     b.Property<DateTime?>("DeletedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("DislikeCount")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsApproved")
                         .HasColumnType("bit");
 
@@ -2363,6 +2426,9 @@ namespace ShopVima.Infrastructure.Migrations
 
                     b.Property<bool>("IsVerifiedPurchase")
                         .HasColumnType("bit");
+
+                    b.Property<int>("LikeCount")
+                        .HasColumnType("int");
 
                     b.Property<Guid?>("OrderItemId")
                         .HasColumnType("uniqueidentifier");
@@ -2397,6 +2463,51 @@ namespace ShopVima.Infrastructure.Migrations
                     b.HasIndex("ProductId", "UserId");
 
                     b.ToTable("Reviews");
+                });
+
+            modelBuilder.Entity("ShopVima.Domain.Entities.ReviewReaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("ReviewId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<bool>("Status")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Value")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ReviewId", "UserId")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("ReviewReactions");
                 });
 
             modelBuilder.Entity("ShopVima.Domain.Entities.Role", b =>
@@ -3153,11 +3264,26 @@ namespace ShopVima.Infrastructure.Migrations
                     b.Property<bool>("ManageStock")
                         .HasColumnType("bit");
 
+                    b.Property<int>("MaxOrderQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("MinOrderQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("QuantityStep")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -3234,6 +3360,57 @@ namespace ShopVima.Infrastructure.Migrations
                     b.HasIndex("VendorOfferId");
 
                     b.ToTable("VendorOfferModerationLogs");
+                });
+
+            modelBuilder.Entity("ShopVima.Domain.Entities.VendorOfferPriceHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("DiscountPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<bool>("Status")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("VendorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VendorOfferId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VendorId");
+
+                    b.HasIndex("ProductId", "CreatedAtUtc");
+
+                    b.HasIndex("VendorOfferId", "CreatedAtUtc");
+
+                    b.ToTable("VendorOfferPriceHistories");
                 });
 
             modelBuilder.Entity("ShopVima.Domain.Entities.VendorOfferVariant", b =>
@@ -4250,6 +4427,25 @@ namespace ShopVima.Infrastructure.Migrations
                     b.Navigation("Vendor");
                 });
 
+            modelBuilder.Entity("ShopVima.Domain.Entities.ProductAnswerReaction", b =>
+                {
+                    b.HasOne("ShopVima.Domain.Entities.ProductAnswer", "ProductAnswer")
+                        .WithMany()
+                        .HasForeignKey("ProductAnswerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShopVima.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ProductAnswer");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ShopVima.Domain.Entities.ProductAttribute", b =>
                 {
                     b.HasOne("ShopVima.Domain.Entities.AttributeGroup", "AttributeGroup")
@@ -4462,6 +4658,25 @@ namespace ShopVima.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ShopVima.Domain.Entities.ReviewReaction", b =>
+                {
+                    b.HasOne("ShopVima.Domain.Entities.Review", "Review")
+                        .WithMany()
+                        .HasForeignKey("ReviewId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShopVima.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Review");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ShopVima.Domain.Entities.RolePermission", b =>
                 {
                     b.HasOne("ShopVima.Domain.Entities.Permission", "Permission")
@@ -4627,6 +4842,33 @@ namespace ShopVima.Infrastructure.Migrations
                         .HasForeignKey("VendorOfferId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("VendorOffer");
+                });
+
+            modelBuilder.Entity("ShopVima.Domain.Entities.VendorOfferPriceHistory", b =>
+                {
+                    b.HasOne("ShopVima.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShopVima.Domain.Entities.Vendor", "Vendor")
+                        .WithMany()
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ShopVima.Domain.Entities.VendorOffer", "VendorOffer")
+                        .WithMany()
+                        .HasForeignKey("VendorOfferId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Vendor");
 
                     b.Navigation("VendorOffer");
                 });

@@ -79,20 +79,25 @@ public class AdminVendorOffersController : ControllerBase
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(o => new AdminVendorOfferListItemDto(
-                o.Id,
-                o.ProductId,
-                o.Product.Title,
-                o.VendorId,
-                o.Vendor.StoreName,
-                o.Price,
-                o.DiscountPrice,
-                o.IsDefaultForProduct,
-                o.Status,
-                o.IsDeleted,
-                o.CreatedAtUtc,
-                o.UpdatedAtUtc,
-                o.DeletedAtUtc,
-                Convert.ToBase64String(o.RowVersion)
+             o.Id,
+            o.ProductId,
+            o.Product.Title,
+            o.VendorId,
+            o.Vendor.StoreName,
+            o.Price,
+            o.DiscountPrice,
+            o.IsDefaultForProduct,
+            o.Status,
+
+            o.MinOrderQuantity,
+            o.MaxOrderQuantity,
+            o.QuantityStep,
+
+            o.IsDeleted,
+            o.CreatedAtUtc,
+            o.UpdatedAtUtc,
+            o.DeletedAtUtc,
+            Convert.ToBase64String(o.RowVersion)
             ))
             .ToListAsync();
 
@@ -124,6 +129,11 @@ public class AdminVendorOffersController : ControllerBase
             o.Status,
             o.ManageStock,
             o.StockQuantity,
+
+            o.MinOrderQuantity,
+            o.MaxOrderQuantity,
+            o.QuantityStep,
+
             o.IsDeleted,
             o.CreatedAtUtc,
             o.UpdatedAtUtc,
@@ -254,6 +264,9 @@ public class AdminVendorOffersController : ControllerBase
                 o.DiscountPrice,
                 o.IsDefaultForProduct,
                 o.Status,
+                o.MinOrderQuantity,
+                o.MaxOrderQuantity,
+                o.QuantityStep,
                 o.IsDeleted,
                 o.CreatedAtUtc,
                 o.UpdatedAtUtc,

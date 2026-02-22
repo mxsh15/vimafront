@@ -12,9 +12,15 @@ public record AdminVendorOfferListItemDto(
     decimal? DiscountPrice,
     bool IsDefaultForProduct,
     VendorOfferStatus Status,
+
+    int MinOrderQuantity,
+    int MaxOrderQuantity,
+    int QuantityStep,
+
     bool IsDeleted,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc,
     DateTime? DeletedAtUtc,
     string RowVersion
 );
+

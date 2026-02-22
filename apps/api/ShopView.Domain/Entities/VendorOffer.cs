@@ -26,5 +26,10 @@ public class VendorOffer : BaseEntity
     public bool IsDefaultForProduct { get; set; }
     public VendorOfferStatus Status { get; set; } = VendorOfferStatus.Pending;
 
+
+    public int MinOrderQuantity { get; set; } = 1; // حداقل خرید
+    public int MaxOrderQuantity { get; set; } = 0; // 0 یعنی نامحدود
+    public int QuantityStep { get; set; } = 1;     // گام خرید
+
     public ICollection<VendorOfferVariant> Variants { get; set; } = new List<VendorOfferVariant>();
 }

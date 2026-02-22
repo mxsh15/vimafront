@@ -15,5 +15,8 @@ public class ProductAnswer : BaseEntity
 
     public string Answer { get; set; } = default!;
     public bool IsVerified { get; set; } = false; // پاسخ تایید شده
+
+    public int LikeCount { get; set; } = 0;
+    public int DislikeCount { get; set; } = 0;
 }
 
