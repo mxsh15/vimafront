@@ -1,5 +1,47 @@
 @import "tailwindcss";
 
+/* Fonts */
+@font-face {
+  font-family: "IRANSans";
+  src: url("/fonts/iransans/IRANSansXFaNum-Regular.woff2") format("woff2");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --color-neutral-000: #fff;
+  --color-neutral-100: #f0f0f1;
+  --color-neutral-200: #e0e0e2;
+  --color-neutral-300: #c0c2c5;
+  --color-secondary-500: #19bfd3;
+  --color-neutral-650: #424242;
+  --color-neutral-700: #3f4064;
+  --color-neutral-800: #23254e;
+  --color-neutral-900: #0c0c0c;
+  --color-dark-neutral-500: #767981;
+  --color-dark-neutral-600: #94969c;
+  --color-button-black: #0c0c0c;
+  --color-icon-high-emphasis: #424750;
+  --color-icon-warning: #f9a825;
+  --color-icon-secondary: #19bfd3;
+  --color-button-primary: #ef4056;
+  --color-button-secondary: #19bfd3;
+  --color-gradient-silver: #f2f2f2;
+  --color-primary-500: #ef4056;
+  --color-primary-700: #ef394e;
+  --color-hint-object-error: #d32f2f;
+  --color-delivery-express: #e6123d;
+  --color-icon-neutral-hint: #81858b;
+  --color-icon-low-emphasis: #a1a3a8;
+  --color-button-text-primary: #fff;
+  --color-hint-text-caution: #f57f17;
+  --radius-global: 8px;
+  --spacing-base: 4px;
+  --font-iransans: "IRANSans", ui-sans-serif, system-ui;
+  --breakpoint-3xl: 1440px;
+}
+
 /* Tailwind v4 content sources */
 @source "../app/**/*.{js,ts,jsx,tsx}";
 @source "../components/**/*.{js,ts,jsx,tsx}";
@@ -9,6 +51,18 @@
 ---------------------------- */
 html {
   scrollbar-gutter: stable;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+a,
+li {
+  font-family: "IRANSans", ui-sans-serif, system-ui;
 }
 
 body.no-scroll {
@@ -37,9 +91,14 @@ body.no-scroll {
   }
 }
 
+.bg-hint-object-error {
+  background-color: var(--color-hint-object-error);
+}
+
 /* ---------------------------
    Components
 ---------------------------- */
+
 @layer components {
   .container-page {
     @apply container mx-auto px-3 sm:px-6 lg:px-8;
@@ -96,17 +155,102 @@ body.no-scroll {
     scrollbar-width: none;
   }
 
-  /* ✅ Gallery slide sizing
-     Use this class on the slide wrapper in your modal.
-  */
   .gallery-fullslider-slide {
     width: 100%;
+  }
+
+  .text-h4 {
+    @apply text-[1.6rem] font-semibold leading-[2.1];
+  }
+
+  .text-body1-strong {
+    @apply text-[1rem] font-medium leading-[2.15];
+  }
+
+  .text-body-1 {
+    @apply text-[0.9rem] font-medium leading-[2.15];
+  }
+
+  .text-body-2 {
+    @apply text-[0.8rem] font-normal leading-[2.17];
+  }
+
+  .text-caption {
+    @apply text-[0.7rem] font-normal leading-[2.17];
+  }
+
+  .text-h5-180 {
+    @apply text-[1rem] font-semibold leading-[1.8];
+  }
+
+  .text-body2-strong {
+    @apply text-[0.8rem] font-semibold;
+  }
+
+  .text-button-1-compact {
+    @apply text-[0.9rem] font-bold leading-[1.25];
+  }
+
+  .text-h4-compact {
+    @apply text-[1.3rem] font-bold leading-[1.25];
+  }
+
+  .text-button-2 {
+    @apply text-[0.8rem] font-medium leading-[2.17];
+  }
+
+  .text-caption-strong {
+    @apply text-[0.7rem] font-medium leading-[2.17];
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-areas:
+      "variant-info"
+      "fidibo-audio-preview"
+      "spec"
+      "buy-box"
+      "touchPoints";
+  }
+
+  .area-variant-info {
+    grid-area: variant-info;
+  }
+
+  .area-audio-preview {
+    grid-area: fidibo-audio-preview;
+  }
+
+  .area-spec {
+    grid-area: spec;
+  }
+
+  .area-touch-points {
+    grid-area: touchPoints;
+  }
+
+  .area-buy-box {
+    grid-area: buy-box;
+  }
+
+  .cube-font-icon {
+    @apply inline-flex items-center justify-center w-4 h-4 text-[16px] font-normal text-icon-high-emphasis;
   }
 
   @media (min-width: 1024px) {
     .gallery-fullslider-slide {
       width: calc(100vh - 230px);
       max-width: 75vw;
+    }
+
+    .info-grid {
+      grid-template-columns: minmax(300px, auto) minmax(300px, 345px);
+      grid-template-rows: auto 0fr auto 1fr;
+      grid-template-areas:
+        "variant-info buy-box"
+        "fidibo-audio-preview buy-box"
+        "spec buy-box"
+        "touchPoints buy-box";
     }
   }
 }

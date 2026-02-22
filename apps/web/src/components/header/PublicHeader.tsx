@@ -114,7 +114,7 @@ export default function PublicHeader({ storeName, logoUrl, cartCount, initialCat
     []
   );
 
-  // --- Mega menu data (REAL, from API)
+  // --- Mega menu data
   const initialMega = useMemo(
     () => buildMegaFromCategoryOptions(initialCategoryOptions ?? []),
     [initialCategoryOptions]
@@ -126,14 +126,8 @@ export default function PublicHeader({ storeName, logoUrl, cartCount, initialCat
   const [megaOpen, setMegaOpen] = useState(false);
   const [activeMegaId, setActiveMegaId] = useState<string>("");
   const catBtnRef = useRef<HTMLButtonElement | null>(null);
-
-  // ✅ این یکی برای "بعد از header" (backdropTop)
   const headerRef = useRef<HTMLElement | null>(null);
-
-  // ✅ این یکی برای "هم‌عرض شدن پنل" (width/left)
   const headerContainerRef = useRef<HTMLDivElement | null>(null);
-
-  // close delay timer
   const hoverCloseTimer = useRef<number | null>(null);
 
   const openMega = () => {
@@ -252,10 +246,37 @@ export default function PublicHeader({ storeName, logoUrl, cartCount, initialCat
     setActiveMegaId((prev) => prev || initialMega[0]?.id || "");
   }, [initialMega]);
 
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+
+    const set = () => {
+      const h = Math.ceil(el.getBoundingClientRect().height);
+      document.documentElement.style.setProperty("--public-header-h", `${h}px`);
+    };
+
+    set();
+
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+
+    window.addEventListener("resize", set);
+    window.addEventListener("load", set);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", set);
+      window.removeEventListener("load", set);
+    };
+  }, []);
+
+
   if (hideHeader) return null;
 
   return (
     <header
+      data-site-header
       ref={headerRef}
       dir="rtl"
       className="sticky top-0 z-50 w-full bg-white border-b border-gray-200"

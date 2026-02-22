@@ -22,13 +22,12 @@ export function ReviewsPageClient({ data, q }: ReviewsPageClientProps) {
             basePath="/admin/reviews"
             data={data}
             q={q}
-            // دیدگاه از سمت فرانت ثبت می‌شود، نیازی به createButton در ادمین نیست
             createButton={null}
             emptyMessage="تاکنون هیچ دیدگاهی ثبت نشده است."
             rowMenuHeader="عملیات"
             rowMenuCell={(row) =>
-                hasPermission("reviews.manage") ? (
-                    <PermissionGuard permission="reviews.manage">
+                hasPermission("reviews.view") ? (
+                    <PermissionGuard permission="reviews.view">
                         <ReviewRowActionsMenu review={row} />
                     </PermissionGuard>
                 ) : null

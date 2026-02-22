@@ -207,6 +207,10 @@ export type VendorOfferPublicDto = {
   isDefaultForProduct: boolean;
   status: "Pending" | "Approved" | "Rejected" | "Disabled" | number;
 
+  minOrderQuantity: number;
+  maxOrderQuantity: number;
+  quantityStep: number;
+
   manageStock: boolean;
   stockQuantity: number;
   isDeleted: boolean;
@@ -239,6 +243,9 @@ export type PublicVendorOfferDto = {
   manageStock: boolean;
   stockQuantity: number;
   status: number | string;
+  minOrderQuantity: number;
+  maxOrderQuantity: number; // 0 یعنی نامحدود
+  quantityStep: number; 
   isDeleted: boolean;
 };
 

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { answerQuestion, deleteQuestion } from "./api";
+import { answerQuestion, deleteQuestion, setQuestionApproval } from "./api";
 import {
   verifyAnswer,
   updateAnswer,
@@ -22,10 +22,19 @@ export async function deleteQuestionAction(id: string) {
   revalidatePath("/admin/product-questions");
 }
 
-export async function verifyAnswerAction(
-  answerId: string,
-  isVerified: boolean
-) {
+export async function approveQuestionAction(id: string) {
+  await setQuestionApproval(id, true);
+  revalidatePath("/admin/product-questions");
+  revalidatePath(`/admin/product-questions/${id}`);
+}
+
+export async function rejectQuestionAction(id: string) {
+  await setQuestionApproval(id, false);
+  revalidatePath("/admin/product-questions");
+  revalidatePath(`/admin/product-questions/${id}`);
+}
+
+export async function verifyAnswerAction(answerId: string, isVerified: boolean) {
   await verifyAnswer(answerId, isVerified);
   revalidatePath("/admin/product-questions");
   revalidatePath("/admin/product-questions/answers/trash");

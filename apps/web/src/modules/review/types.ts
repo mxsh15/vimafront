@@ -9,7 +9,8 @@ export type ReviewDto = {
   comment?: string | null;
   isApproved: boolean;
   isVerifiedPurchase: boolean;
+  likeCount: number;
+  dislikeCount: number;
   createdAtUtc: string;
 };
-
 export type ReviewRow = ReviewDto;

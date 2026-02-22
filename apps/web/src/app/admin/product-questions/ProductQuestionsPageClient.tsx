@@ -26,8 +26,8 @@ export function ProductQuestionsPageClient({ data, q }: Props) {
             emptyMessage="سؤالی ثبت نشده است."
             rowMenuHeader="عملیات"
             rowMenuCell={(row) =>
-                hasPermission("product-questions.manage") ? (
-                    <PermissionGuard permission="product-questions.manage">
+                hasPermission("product-questions.view") ? (
+                    <PermissionGuard permission="product-questions.view">
                         <ProductQuestionRowActionsMenu question={row} />
                     </PermissionGuard>
                 ) : null
@@ -44,9 +44,7 @@ export function ProductQuestionsPageClient({ data, q }: Props) {
                     id: "question",
                     header: "سؤال",
                     cell: (r) =>
-                        r.question.length > 80
-                            ? r.question.slice(0, 80) + "…"
-                            : r.question,
+                        r.question.length > 80 ? r.question.slice(0, 80) + "…" : r.question,
                     cellClassName: "px-2 text-xs text-slate-700",
                 },
                 {
@@ -63,7 +61,7 @@ export function ProductQuestionsPageClient({ data, q }: Props) {
                 },
                 {
                     id: "status",
-                    header: "وضعیت",
+                    header: "وضعیت پاسخ",
                     cell: (r) => (
                         <span
                             className={
@@ -74,6 +72,23 @@ export function ProductQuestionsPageClient({ data, q }: Props) {
                             }
                         >
                             {r.isAnswered ? "پاسخ داده شده" : "در انتظار پاسخ"}
+                        </span>
+                    ),
+                    cellClassName: "px-2",
+                },
+                {
+                    id: "approval",
+                    header: "وضعیت تأیید",
+                    cell: (r) => (
+                        <span
+                            className={
+                                "inline-flex rounded-full border px-2 py-0.5 text-[10px] " +
+                                (r.isApproved
+                                    ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                                    : "border-amber-200 bg-amber-50 text-amber-600")
+                            }
+                        >
+                            {r.isApproved ? "تأیید شده" : "در انتظار تأیید"}
                         </span>
                     ),
                     cellClassName: "px-2",

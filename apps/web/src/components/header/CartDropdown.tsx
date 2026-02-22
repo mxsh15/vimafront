@@ -110,10 +110,6 @@ export function CartDropdown({ initialCart }: { initialCart?: CartDto | null }) 
                     <>
                         <div className="max-h-[320px] overflow-auto custom-scrollbar space-y-2">
                             {cart.items.map((item) => {
-                                const raw = item.productImageUrl;
-                                const resolved = raw ? resolveMediaUrl(raw) : null;
-                                console.log("cart item image:", { id: item.id, raw, resolved });
-
                                 return (
                                     <div key={item.id} className="flex gap-3 p-2 rounded-xl hover:bg-gray-50">
                                         <div key={item.id} className="flex gap-3 p-2 rounded-xl hover:bg-gray-50">

@@ -1,8 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { RowActionsMenu } from "@/shared/components/RowActionsMenu";
-import { approveReviewAction, deleteReviewAction } from "../actions";
+import { approveReviewAction, rejectReviewAction, deleteReviewAction } from "../actions";
+import { usePermissions } from "@/context/PermissionContext";
 
 type ReviewRowActionsMenuProps = {
     review: {
@@ -14,28 +15,49 @@ type ReviewRowActionsMenuProps = {
 };
 
 export function ReviewRowActionsMenu({ review }: ReviewRowActionsMenuProps) {
-    const [pending, startTransition] = useTransition();
+    const router = useRouter();
+    const { hasPermission } = usePermissions();
+    const canApprove = hasPermission("reviews.approve") || hasPermission("reviews.manage");
+    const canReject = hasPermission("reviews.reject") || hasPermission("reviews.manage");
+    const canDelete = hasPermission("reviews.delete") || hasPermission("reviews.manage");
 
-    const handleApprove = () => {
-        if (review.isApproved) return;
-        startTransition(async () => {
-            await approveReviewAction(review.id);
-        });
-    };
+    if (!canApprove && !canReject && !canDelete) return null;
 
-    const handleDelete = () => {
-        if (!confirm("آیا از حذف این دیدگاه مطمئن هستید؟")) return;
-        startTransition(async () => {
-            await deleteReviewAction(review.id);
-        });
-    };
+    const isPending = !review.isApproved;
 
     return (
         <RowActionsMenu
-            onEdit={handleApprove}
-            onDelete={handleDelete}
             editLabel={review.isApproved ? "تأیید شده" : "تأیید دیدگاه"}
-            deleteLabel="حذف"
+            deleteLabel={isPending ? "رد دیدگاه" : "حذف"}
+            onEdit={
+                canApprove && isPending
+                    ? async () => {
+                        const ok = window.confirm("آیا از تأیید این دیدگاه مطمئن هستید؟");
+                        if (!ok) return;
+                        await approveReviewAction(review.id);
+                        router.refresh();
+                    }
+                    : undefined
+            }
+            onDelete={
+                isPending
+                    ? canReject
+                        ? async () => {
+                            const ok = window.confirm("آیا از رد کردن این دیدگاه مطمئن هستید؟");
+                            if (!ok) return;
+                            await rejectReviewAction(review.id);
+                            router.refresh();
+                        }
+                        : undefined
+                    : canDelete
+                        ? async () => {
+                            const ok = window.confirm("آیا از حذف این دیدگاه مطمئن هستید؟");
+                            if (!ok) return;
+                            await deleteReviewAction(review.id);
+                            router.refresh();
+                        }
+                        : undefined
+            }
         />
     );
 }
